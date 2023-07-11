@@ -1,0 +1,26 @@
+[package]
+name = "rika"
+version = "0.1.0"
+edition = "2021"
+
+[profile.release]
+opt-level = 'z'
+strip = true 
+lto = true  
+codegen-units = 1
+
+[dependencies]
+anyhow = "1.0.71"
+derive_more = "0.99.17"
+dotenvy = "0.15.7"
+envy = "0.4.2"
+log = "0.4.19"
+poise = "0.5.5"
+serde = { version = "1.0.167", features = ["derive"] }
+structstruck = "0.4.1"
+strum = { version = "0.25.0", features = ["derive", "strum_macros"] }
+tokio = { version = "1.29.1", features = ["full"] }
+nestruct = "0.1.0"
+lexicon = {path = "./lexicon" }
+roricon = {path = "./roricon" }
+bevy_reflect = "0.11.0"
