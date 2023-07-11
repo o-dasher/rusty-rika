@@ -1,6 +1,7 @@
-use crate::{commands::CommandReturn, utils::emojis::RikaMoji, RikaContext, RoriconTrait};
+use crate::{commands::CommandReturn, utils::emojis::RikaMoji, RikaContext};
 use lexicon::t;
 use poise::serenity_prelude::{self, Color};
+use roricon::RoriconTrait;
 
 #[poise::command(slash_command)]
 pub async fn avatar(

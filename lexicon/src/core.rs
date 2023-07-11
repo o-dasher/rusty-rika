@@ -1,4 +1,4 @@
-use std::{collections::HashMap, hash::Hash};
+use std::{collections::HashMap, hash::Hash, str::FromStr};
 
 use bevy_reflect::{FromReflect, GetPath, Reflect, TypePath};
 
@@ -31,7 +31,7 @@ pub trait DefaultLocalizer {
 }
 
 /// Stores localizers for a given locale.
-pub struct LocalizerStore<L: LocalizerTrait>(HashMap<L::Key, L::Value>);
+pub struct LocalizerStore<L: LocalizerTrait>(pub HashMap<L::Key, L::Value>);
 
 impl<L: LocalizerTrait, F: Fn() -> L::Value> From<Vec<(L::Key, F)>> for LocalizerStore<L> {
     fn from(value: Vec<(L::Key, F)>) -> Self {
@@ -41,7 +41,7 @@ impl<L: LocalizerTrait, F: Fn() -> L::Value> From<Vec<(L::Key, F)>> for Localize
 
 /// A localizer that wraps a store of localizer implementations.
 pub struct Localizer<K: Eq + Hash + Default + Copy, V: DefaultLocalizer> {
-    store: LocalizerStore<Self>,
+    pub store: LocalizerStore<Self>,
 }
 
 pub trait LocalizerTrait {
@@ -92,6 +92,31 @@ impl<'a, K: Eq + Hash + Copy + Default, V: DefaultLocalizer + Reflect> LexiconTh
         self.to
             .rs(acessing)
             .or_else(|| self.localizer.ref_default().rs(acessing))
+    }
+}
+
+// This trait is used to automatically also provide a way to get a locale from an option locale
+// if the Key that is being used applies the trait "FromStr".
+pub trait LocaleFromOptionString {
+    fn from_option_locale(value: Option<&str>) -> Self;
+}
+
+pub trait LocaleFromString {
+    fn get_locale_from_string(value: &str) -> Self;
+}
+
+impl<K: Eq + Hash + Copy + Default + FromStr> LocaleFromString for K {
+    fn get_locale_from_string(value: &str) -> Self {
+        K::from_str(value).unwrap_or_default()
+    }
+}
+
+impl<K: Eq + Hash + Copy + Default + FromStr + LocaleFromString> LocaleFromOptionString for K {
+    fn from_option_locale(value: Option<&str>) -> Self {
+        match value {
+            Some(v) => K::get_locale_from_string(v),
+            None => K::default(),
+        }
     }
 }
 

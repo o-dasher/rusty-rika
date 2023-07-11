@@ -1,7 +1,7 @@
 pub mod en;
 pub mod pt_br;
 
-use std::str::FromStr;
+
 
 use derive_more::From;
 use strum::{Display, EnumString};
@@ -28,11 +28,3 @@ pub enum RikaLocale {
     BrazilianPortuguese,
 }
 
-impl From<Option<&str>> for RikaLocale {
-    fn from(value: Option<&str>) -> Self {
-        match value {
-            Some(v) => RikaLocale::from_str(v).unwrap_or_default(),
-            None => RikaLocale::default(),
-        }
-    }
-}
