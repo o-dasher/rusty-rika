@@ -1,4 +1,4 @@
-use lexicon::{r, wo, DefaultLocalizer, GR};
+use lexicon::{r, DefaultLocalizer, GR};
 
 use super::rika_localizer::{
     user::{
@@ -12,9 +12,9 @@ impl DefaultLocalizer for RikaLocalizer {
     fn default_localizer() -> Self {
         Self {
             user: User {
-                name: r!("OWO1"),
+                name: r!("user"),
                 avatar: Avatar {
-                    name: r!("MIAU"),
+                    name: r!("avatar"),
                     footer: Footer {
                         eq: r!("Woah, it's you"),
                         other: Some(GR::new(|who| format!("Woah it's {who}"))),
