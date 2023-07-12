@@ -1,4 +1,4 @@
-use lexicon::{r, DefaultLocalizer, GR};
+use lexicon::*;
 
 use super::rika_localizer::{
     user::{
