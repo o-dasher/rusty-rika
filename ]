@@ -68,33 +68,38 @@ trait RoriconLocalizable {
     fn description_localizations(&mut self) -> Option<&mut HashMap<String, String>>;
 }
 
-macro_rules! impl_localizable {
-    (name) => {
-        fn name(&self) -> &str {
-            &self.name
-        }
-    };
+impl<U, E> RoriconLocalizable for Command<U, E> {
+    fn name(&self) -> &str {
+        &self.name
+    }
 
-    ($struct:ident) => {
-        impl<U, E> RoriconLocalizable for $struct<U, E> {
-            impl_localizable!(name);
+    fn name_localizations(&mut self) -> &mut HashMap<String, String> {
+        &mut self.name_localizations
+    }
 
-            fn name_localizations(&mut self) -> &mut HashMap<String, String> {
-                &mut self.name_localizations
-            }
-
-            fn description_localizations(&mut self) -> Option<&mut HashMap<String, String>> {
-                Some(&mut self.description_localizations)
-            }
-        }
-    };
+    fn description_localizations(&mut self) -> Option<&mut HashMap<String, String>> {
+        Some(&mut self.description_localizations)
+    }
 }
 
-impl_localizable!(Command);
-impl_localizable!(CommandParameter);
+impl<U, E> RoriconLocalizable for CommandParameter<U, E> {
+    fn name(&self) -> &str {
+        &self.name
+    }
+
+    fn name_localizations(&mut self) -> &mut HashMap<String, String> {
+        &mut self.name_localizations
+    }
+
+    fn description_localizations(&mut self) -> Option<&mut HashMap<String, String>> {
+        Some(&mut self.description_localizations)
+    }
+}
 
 impl RoriconLocalizable for CommandParameterChoice {
-    impl_localizable!(name);
+    fn name(&self) -> &str {
+        &self.name
+    }
 
     fn name_localizations(&mut self) -> &mut HashMap<String, String> {
         &mut self.localizations
@@ -159,18 +164,16 @@ fn apply_translation<'a, L: LocalizerTrait, U, E>(
         // Recursive case to apply on subcommands too.
         apply_translation(&mut command.subcommands, &locale_accesses);
 
-        // This could be recursive, we could have a trait that defines Children.
-        // and we keep calling apply_localization to all the children of the
-        // children of the child... Yeah, you get it.
         apply_localization(command, locale_accesses);
 
+        // Recursão ia ser melhor.
         for sub in &mut command.subcommands {
             apply_localization(sub, locale_accesses);
 
-            for param in &mut sub.parameters {
+            for param in &mut *sub.parameters {
                 apply_localization(param, locale_accesses);
 
-                for choice in &mut param.choices {
+                for choice in &mut *param.choices {
                     apply_localization(choice, locale_accesses)
                 }
             }

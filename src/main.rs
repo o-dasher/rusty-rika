@@ -2,7 +2,7 @@ pub mod commands;
 pub mod translations;
 pub mod utils;
 
-use commands::{owner::owner, user::user};
+use commands::{owner::owner, user::user, math::math};
 use derive_more::From;
 use dotenvy::dotenv;
 use lexicon::Localizer;
@@ -14,7 +14,6 @@ use roricon::{apply_translations, RoriconMetaTrait};
 use serde::Deserialize;
 use strum::Display;
 use tracing::error;
-use tracing_subscriber::filter::LevelFilter;
 use translations::{pt_br::locale_pt_br, rika_localizer::RikaLocalizer, RikaLocale};
 
 #[derive(Deserialize)]
@@ -49,7 +48,7 @@ async fn main() {
 
     let config = envy::from_env::<RikaConfig>().expect("Environment variables must be set");
 
-    let mut commands = vec![user(), owner()];
+    let mut commands = vec![user(), owner(), math()];
     let locales = Localizer::new(vec![(RikaLocale::BrazilianPortuguese, locale_pt_br)]);
 
     apply_translations(&mut commands, &locales);

@@ -75,13 +75,20 @@ macro_rules! impl_localizable {
         }
     };
 
+    (name_localizations) => {
+        fn name_localizations(&mut self) -> &mut HashMap<String, String> {
+            &mut self.name_localizations
+        }
+    };
+
+    (base) => {
+        impl_localizable!(name);
+        impl_localizable!(name_localizations);
+    };
+
     ($struct:ident) => {
         impl<U, E> RoriconLocalizable for $struct<U, E> {
-            impl_localizable!(name);
-
-            fn name_localizations(&mut self) -> &mut HashMap<String, String> {
-                &mut self.name_localizations
-            }
+            impl_localizable!(base);
 
             fn description_localizations(&mut self) -> Option<&mut HashMap<String, String>> {
                 Some(&mut self.description_localizations)

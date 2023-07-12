@@ -106,7 +106,8 @@ impl<K: Eq + Hash + Copy + Default + FromStr> From<&str> for LocaleKey<K> {
     }
 }
 
-impl<K: Eq + Hash + Copy + Default + FromStr> From<Option<&str>> for LocaleKey<K> {
+impl<K: Eq + Hash + Copy + Default + FromStr> From<Option<&str>> for LocaleKey<K>
+{
     fn from(value: Option<&str>) -> Self {
         match value {
             Some(v) => v.into(),
