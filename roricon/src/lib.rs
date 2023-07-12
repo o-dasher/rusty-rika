@@ -2,7 +2,7 @@
 /// given the problem that this is trying to solve.
 ///
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::HashMap,
     fmt::Display,
     hash::Hash,
     str::FromStr,
