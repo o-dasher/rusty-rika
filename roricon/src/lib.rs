@@ -39,7 +39,7 @@ enum CommandLocalization {
     Description,
 }
 
-struct LocaleAccesses<'a, L: LocalizerTrait>(Vec<(&'a L::Key, LocaleAccess<'a, L>)>);
+struct LocaleAccesses<'a, L: LocalizerTrait>(Vec<(String, LocaleAccess<'a, L>)>);
 
 pub fn apply_translations<
     K: Eq + Hash + Default + Copy + Display,
@@ -55,7 +55,7 @@ pub fn apply_translations<
         .0
         .keys()
         .into_iter()
-        .map(|key| (key, localizer.get(*key)))
+        .map(|key| (key.to_string(), localizer.get(*key)))
         .collect_vec();
 
     apply_translation(commands, &LocaleAccesses(locale_accesses))
@@ -87,23 +87,20 @@ fn apply_translation<'a, L: LocalizerTrait, U, E>(
                 continue;
             };
 
-            let applied_locale = lang_key.to_string();
+            let lang_key = lang_key.clone();
             let localized_key = localized_key.clone();
 
             match locale_type {
                 CommandLocalization::Name => {
-                    command
-                        .name_localizations
-                        .insert(applied_locale, localized_key);
+                    command.name_localizations.insert(lang_key, localized_key);
                 }
                 CommandLocalization::Description => {
                     command
                         .description_localizations
-                        .insert(applied_locale, localized_key);
+                        .insert(lang_key, localized_key);
                 }
             };
 
-            // Must also implement command parameters and choices localization
         }
     }
 }
