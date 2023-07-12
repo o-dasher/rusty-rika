@@ -5,7 +5,7 @@ pub mod utils;
 use commands::{owner::owner, user::user};
 use derive_more::From;
 use dotenvy::dotenv;
-use lexicon::{Localizer};
+use lexicon::Localizer;
 use poise::{
     serenity_prelude::{self, GatewayIntents, GuildId},
     FrameworkOptions,
@@ -13,6 +13,8 @@ use poise::{
 use roricon::{apply_translations, RoriconMetaTrait};
 use serde::Deserialize;
 use strum::Display;
+use tracing::error;
+use tracing_subscriber::filter::LevelFilter;
 use translations::{pt_br::locale_pt_br, rika_localizer::RikaLocalizer, RikaLocale};
 
 #[derive(Deserialize)]
@@ -43,10 +45,11 @@ impl<'a> RoriconMetaTrait<'a, RikaLocale, RikaLocalizer> for RikaContext<'a> {
 #[tokio::main]
 async fn main() {
     dotenv().ok();
+    tracing_subscriber::fmt().with_target(true).pretty().init();
 
     let config = envy::from_env::<RikaConfig>().expect("Environment variables must be set");
-    let mut commands = vec![user(), owner()];
 
+    let mut commands = vec![user(), owner()];
     let locales = Localizer::new(vec![(RikaLocale::BrazilianPortuguese, locale_pt_br)]);
 
     apply_translations(&mut commands, &locales);
@@ -54,6 +57,13 @@ async fn main() {
     poise::Framework::builder()
         .options(FrameworkOptions {
             commands,
+            on_error: |err| {
+                Box::pin(async move {
+                    if let Err(e) = poise::builtins::on_error(err).await {
+                        error!("{e:?}");
+                    }
+                })
+            },
             ..Default::default()
         })
         .token(&config.bot_token)

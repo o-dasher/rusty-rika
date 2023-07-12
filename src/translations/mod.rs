@@ -1,18 +1,20 @@
 pub mod en;
 pub mod pt_br;
 
-
-
 use derive_more::From;
 use strum::{Display, EnumString};
 
 nestruct::nest! {
     #[derive(Default, Debug, bevy_reflect::Reflect)]
     RikaLocalizer {
-        avatar: {
-            footer: {
-                eq: lexicon::R?,
-                other: lexicon::GR<String>?
+        user: {
+            name: lexicon::R?,
+            avatar: {
+                name: lexicon::R?,
+                footer: {
+                    eq: lexicon::R?,
+                    other: lexicon::GR<String>?
+                }
             }
         },
     }
@@ -27,4 +29,3 @@ pub enum RikaLocale {
     #[strum(serialize = "pt-BR")]
     BrazilianPortuguese,
 }
-

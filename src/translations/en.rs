@@ -1,18 +1,24 @@
 use lexicon::{r, wo, DefaultLocalizer, GR};
 
 use super::rika_localizer::{
-    avatar::{footer::Footer, Avatar},
+    user::{
+        avatar::{footer::Footer, Avatar},
+        User,
+    },
     RikaLocalizer,
 };
 
 impl DefaultLocalizer for RikaLocalizer {
     fn default_localizer() -> Self {
         Self {
-            avatar: Avatar {
-                footer: wo! {
-                    Footer
+            user: User {
+                name: r!("OWO1"),
+                avatar: Avatar {
+                    name: r!("MIAU"),
+                    footer: Footer {
                         eq: r!("Woah, it's you"),
-                        other: GR::new(|who| r!("Woah it's {who}")),
+                        other: Some(GR::new(|who| format!("Woah it's {who}"))),
+                    },
                 },
             },
         }

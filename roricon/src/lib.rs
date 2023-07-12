@@ -4,7 +4,7 @@
 use std::hash::Hash;
 
 use bevy_reflect::Reflect;
-use itertools::Itertools;
+use itertools::{iproduct, Itertools};
 use lexicon::{
     DefaultLocalizer, LexiconThroughPath, LocaleAccess, LocaleFromOptionString, Localizer, R,
 };
@@ -16,7 +16,7 @@ pub trait RoriconMetaTrait<'a, K: Eq + Hash + Copy + Default + 'a, V: DefaultLoc
 }
 
 /// Automatically implemented trait for context's that provide locales.
-pub trait RoriconTrait<'a, K: Eq + Hash + Copy + Default + 'a, V: DefaultLocalizer + 'a> {
+pub trait RoriconTrait<K: Eq + Hash + Copy + Default, V: DefaultLocalizer> {
     // Acquires i18n access.
     fn i18n(&self) -> LocaleAccess<K, V>;
 }
@@ -27,7 +27,7 @@ impl<
         V: DefaultLocalizer + 'a,
         U,
         E,
-    > RoriconTrait<'a, K, V> for poise::Context<'a, U, E>
+    > RoriconTrait<K, V> for poise::Context<'a, U, E>
 where
     Self: RoriconMetaTrait<'a, K, V>,
 {
@@ -36,8 +36,16 @@ where
     }
 }
 
+#[derive(Display, EnumIter, Clone)]
+#[strum(serialize_all = "snake_case")]
+enum CommandLocalization {
+    Name,
+    Description,
+}
+
+type LocaleAccesses<'a, K, V> = Vec<(&'a K, LocaleAccess<'a, K, V>)>;
+
 pub fn apply_translations<
-    'a,
     K: Eq + Hash + Copy + Default + ToString,
     V: DefaultLocalizer + Reflect,
     U,
@@ -46,44 +54,59 @@ pub fn apply_translations<
     commands: &mut [poise::Command<U, E>],
     localizer: &Localizer<K, V>,
 ) {
-    #[derive(Display, EnumIter, Clone)]
-    #[strum(serialize_all = "snake_case")]
-    enum CommandLocalization {
-        Name,
-        Description,
-    }
+    let locale_accesses = localizer
+        .store
+        .0
+        .keys()
+        .into_iter()
+        .map(|key| (key, localizer.get(*key)))
+        .collect_vec();
 
+    apply_translation(commands, &locale_accesses)
+}
+
+fn apply_translation<
+    'a,
+    K: Eq + Hash + Copy + Default + ToString,
+    V: DefaultLocalizer + Reflect,
+    U,
+    E,
+>(
+    commands: &mut [poise::Command<U, E>],
+    locale_accesses: &LocaleAccesses<'a, K, V>,
+) {
     for command in &mut *commands {
-        let localization_keys = CommandLocalization::iter()
+        // Recursive case to apply on subcommands too.
+        apply_translation(&mut command.subcommands, &locale_accesses);
+
+        let locale_tags = CommandLocalization::iter()
             .map(|l| (l.clone(), format!("{}.{}", command.name, l)))
             .collect_vec();
 
-        for locale in localizer.store.0.keys().into_iter() {
-            let locale_access = localizer.get(*locale);
+        let permutations = iproduct!(locale_accesses, &locale_tags);
 
-            for (locale_type, key) in &localization_keys {
-                let possible_resource = locale_access.rs::<R>(&key);
+        for ((lang_key, access), (locale_type, tag)) in permutations {
+            let possible_resource = access.rs::<R>(&tag);
 
-                let Some(localized_key) = possible_resource else {
-                    continue;
-                };
+            let Some(localized_key) = possible_resource else {
+                continue;
+            };
 
-                let localized_key = localized_key.to_string();
-                let applied_locale = locale.to_string();
+            let applied_locale = lang_key.to_string();
+            let localized_key = localized_key.clone();
 
-                match locale_type {
-                    CommandLocalization::Name => {
-                        command
-                            .name_localizations
-                            .insert(applied_locale, localized_key);
-                    }
-                    CommandLocalization::Description => {
-                        command
-                            .description_localizations
-                            .insert(applied_locale, localized_key);
-                    }
-                };
-            }
+            match locale_type {
+                CommandLocalization::Name => {
+                    command
+                        .name_localizations
+                        .insert(applied_locale, localized_key);
+                }
+                CommandLocalization::Description => {
+                    command
+                        .description_localizations
+                        .insert(applied_locale, localized_key);
+                }
+            };
         }
     }
 }

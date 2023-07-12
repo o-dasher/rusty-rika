@@ -10,7 +10,7 @@ macro_rules! wo {
 #[macro_export]
 macro_rules! r {
     ($lit:literal) => {
-        format!($lit)
+        Some(format!($lit))
     };
 }
 
