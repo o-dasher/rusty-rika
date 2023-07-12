@@ -1,19 +1,20 @@
 pub mod commands;
+pub mod error;
 pub mod translations;
 pub mod utils;
 
-use commands::{owner::owner, user::user, math::math};
-use derive_more::From;
+use commands::{math::math, owner::owner, user::user};
 use dotenvy::dotenv;
+use error::RikaError;
 use lexicon::Localizer;
+use log::error;
 use poise::{
-    serenity_prelude::{self, GatewayIntents, GuildId},
+    futures_util::TryFutureExt,
+    serenity_prelude::{GatewayIntents, GuildId},
     FrameworkOptions,
 };
 use roricon::{apply_translations, RoriconMetaTrait};
 use serde::Deserialize;
-use strum::Display;
-use tracing::error;
 use translations::{pt_br::locale_pt_br, rika_localizer::RikaLocalizer, RikaLocale};
 
 #[derive(Deserialize)]
@@ -25,12 +26,6 @@ pub struct RikaConfig {
 pub struct RikaData {
     config: RikaConfig,
     locales: Localizer<RikaLocale, RikaLocalizer>,
-}
-
-#[derive(From, Debug, Display)]
-pub enum RikaError {
-    Serenity(serenity_prelude::Error),
-    Anyhow(anyhow::Error),
 }
 
 pub type RikaContext<'a> = poise::Context<'a, RikaData, RikaError>;
@@ -56,13 +51,7 @@ async fn main() {
     poise::Framework::builder()
         .options(FrameworkOptions {
             commands,
-            on_error: |err| {
-                Box::pin(async move {
-                    if let Err(e) = poise::builtins::on_error(err).await {
-                        error!("{e:?}");
-                    }
-                })
-            },
+            on_error: |err| Box::pin(error::on_error(err).unwrap_or_else(|e| error!("{}", e))),
             ..Default::default()
         })
         .token(&config.bot_token)
