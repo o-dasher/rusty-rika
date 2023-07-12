@@ -106,8 +106,7 @@ impl<K: Eq + Hash + Copy + Default + FromStr> From<&str> for LocaleKey<K> {
     }
 }
 
-impl<K: Eq + Hash + Copy + Default + FromStr> From<Option<&str>> for LocaleKey<K>
-{
+impl<K: Eq + Hash + Copy + Default + FromStr> From<Option<&str>> for LocaleKey<K> {
     fn from(value: Option<&str>) -> Self {
         match value {
             Some(v) => v.into(),
@@ -142,7 +141,7 @@ where
     }
 
     /// Returns a wrapper for the localizer that provides access to the localizer for a given locale.
-    pub fn get<'a>(&'a self, locale: impl Into<K>) -> LocaleAccess<'a, Self> {
+     pub fn get<'a>(&'a self, locale: impl Into<K>) -> LocaleAccess<'a, Self> {
         LocaleAccess {
             localizer: &self,
             to: self.ref_any(&locale.into()),

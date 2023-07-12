@@ -1,7 +1,12 @@
 /// This is kind of a disgusting type magic, but i think it is kind of understable
 /// given the problem that this is trying to solve.
 ///
-use std::{collections::HashMap, fmt::Display, hash::Hash, str::FromStr};
+use std::{
+    collections::{HashMap, VecDeque},
+    fmt::Display,
+    hash::Hash,
+    str::FromStr,
+};
 
 use bevy_reflect::Reflect;
 use itertools::{iproduct, Itertools};
@@ -63,22 +68,13 @@ pub fn apply_translations<
 }
 
 trait RoriconLocalizable {
-    fn name(&self) -> &str;
     fn name_localizations(&mut self) -> &mut HashMap<String, String>;
     fn description_localizations(&mut self) -> Option<&mut HashMap<String, String>>;
 }
 
 macro_rules! impl_localizable {
-    (name) => {
-        fn name(&self) -> &str {
-            &self.name
-        }
-    };
-
     ($struct:ident) => {
         impl<U, E> RoriconLocalizable for $struct<U, E> {
-            impl_localizable!(name);
-
             fn name_localizations(&mut self) -> &mut HashMap<String, String> {
                 &mut self.name_localizations
             }
@@ -94,8 +90,6 @@ impl_localizable!(Command);
 impl_localizable!(CommandParameter);
 
 impl RoriconLocalizable for CommandParameterChoice {
-    impl_localizable!(name);
-
     fn name_localizations(&mut self) -> &mut HashMap<String, String> {
         &mut self.localizations
     }
@@ -106,14 +100,26 @@ impl RoriconLocalizable for CommandParameterChoice {
 }
 
 fn apply_localization<'a, L: LocalizerTrait>(
-    localizable: &mut impl RoriconLocalizable,
+    path: &mut Vec<String>,
+    next_tag: String,
+    localizable: &'a mut impl RoriconLocalizable,
     locale_accesses: &LocaleAccesses<'a, L>,
 ) where
     L::Key: Display,
     L::Value: Reflect,
 {
+    path.push(next_tag);
+
     let locale_tags = CommandLocalization::iter()
-        .map(|l| (l.clone(), format!("{}.{}", localizable.name(), l)))
+        .map(|l| {
+            let mut path_new = path.clone();
+
+            path_new.push(l.to_string());
+
+            let path_string = path.iter().join(".");
+
+            (l.clone(), path_string)
+        })
         .collect_vec();
 
     // All combinations of locale acesses and locale tags that can
@@ -125,7 +131,7 @@ fn apply_localization<'a, L: LocalizerTrait>(
 
         let Some(localized_key) = possible_resource else {
                 continue;
-            };
+        };
 
         let lang_key = lang_key.clone();
         let localized_key = localized_key.clone();
@@ -156,23 +162,26 @@ fn apply_translation<'a, L: LocalizerTrait, U, E>(
     L::Value: Reflect,
 {
     for command in commands {
+        let mut path_vec = vec![];
+
         // Recursive case to apply on subcommands too.
         apply_translation(&mut command.subcommands, &locale_accesses);
 
         // This could be recursive, we could have a trait that defines Children.
         // and we keep calling apply_localization to all the children of the
         // children of the child... Yeah, you get it.
-        apply_localization(command, locale_accesses);
+        apply_localization(
+            &mut path_vec,
+            command.name.clone(),
+            command,
+            locale_accesses,
+        );
 
-        for sub in &mut command.subcommands {
-            apply_localization(sub, locale_accesses);
+        for param in &mut command.parameters {
+            apply_localization(&mut path_vec, param.name.clone(), param, locale_accesses);
 
-            for param in &mut sub.parameters {
-                apply_localization(param, locale_accesses);
-
-                for choice in &mut param.choices {
-                    apply_localization(choice, locale_accesses)
-                }
+            for choice in &mut param.choices {
+                apply_localization(&mut path_vec, choice.name.clone(), choice, locale_accesses)
             }
         }
     }
