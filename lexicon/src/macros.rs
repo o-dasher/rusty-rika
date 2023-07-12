@@ -1,14 +1,9 @@
 #[macro_export]
-macro_rules! wo {
-    ($struct_name:ident $($field:ident : $value:expr),* $(,)?) => {
-        $struct_name {
-            $($field: Some($value)),*
-        }
-    };
-}
-
-#[macro_export]
+// Macro to easily define an i18n resource.
 macro_rules! r {
+    (|$args:ident| $lit:literal) => {
+        Some(GR::new(|$args| format!($lit)))
+    };
     ($lit:literal) => {
         Some(format!($lit))
     };

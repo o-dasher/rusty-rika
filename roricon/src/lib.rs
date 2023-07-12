@@ -1,38 +1,34 @@
 /// This is kind of a disgusting type magic, but i think it is kind of understable
 /// given the problem that this is trying to solve.
 ///
-use std::hash::Hash;
+use std::{fmt::Display, hash::Hash, str::FromStr};
 
 use bevy_reflect::Reflect;
 use itertools::{iproduct, Itertools};
 use lexicon::{
-    DefaultLocalizer, LexiconThroughPath, LocaleAccess, LocaleFromOptionString, Localizer, R,
+    DefaultLocalizer, LexiconThroughPath, LocaleAccess, LocaleKey, Localizer, LocalizerTrait, R,
 };
 use strum::{Display, EnumIter, IntoEnumIterator};
 
-pub trait RoriconMetaTrait<'a, K: Eq + Hash + Copy + Default + 'a, V: DefaultLocalizer + 'a> {
+pub trait RoriconMetaTrait<'a, K: Eq + Hash + Default + Copy, V: DefaultLocalizer> {
     // Returns references to the required locales.
     fn locales(&self) -> &'a Localizer<K, V>;
 }
 
 /// Automatically implemented trait for context's that provide locales.
-pub trait RoriconTrait<K: Eq + Hash + Copy + Default, V: DefaultLocalizer> {
+pub trait RoriconTrait<'a, K: Eq + Hash + Default + Copy, V: DefaultLocalizer> {
     // Acquires i18n access.
-    fn i18n(&self) -> LocaleAccess<K, V>;
+    fn i18n(&self) -> LocaleAccess<'a, Localizer<K, V>>;
 }
 
-impl<
-        'a,
-        K: Eq + Hash + Copy + Default + LocaleFromOptionString + 'a,
-        V: DefaultLocalizer + 'a,
-        U,
-        E,
-    > RoriconTrait<K, V> for poise::Context<'a, U, E>
+impl<'a, K: Eq + Hash + Default + Copy + FromStr, V: DefaultLocalizer, U, E> RoriconTrait<'a, K, V>
+    for poise::Context<'a, U, E>
 where
     Self: RoriconMetaTrait<'a, K, V>,
 {
-    fn i18n(&self) -> LocaleAccess<K, V> {
-        self.locales().get(K::from_option_locale(self.locale()))
+    fn i18n(&self) -> LocaleAccess<'a, Localizer<K, V>> {
+        let key: K = LocaleKey::from(self.locale()).0;
+        self.locales().get(key)
     }
 }
 
@@ -43,10 +39,10 @@ enum CommandLocalization {
     Description,
 }
 
-type LocaleAccesses<'a, K, V> = Vec<(&'a K, LocaleAccess<'a, K, V>)>;
+struct LocaleAccesses<'a, L: LocalizerTrait>(Vec<(&'a L::Key, LocaleAccess<'a, L>)>);
 
 pub fn apply_translations<
-    K: Eq + Hash + Copy + Default + ToString,
+    K: Eq + Hash + Default + Copy + Display,
     V: DefaultLocalizer + Reflect,
     U,
     E,
@@ -62,19 +58,16 @@ pub fn apply_translations<
         .map(|key| (key, localizer.get(*key)))
         .collect_vec();
 
-    apply_translation(commands, &locale_accesses)
+    apply_translation(commands, &LocaleAccesses(locale_accesses))
 }
 
-fn apply_translation<
-    'a,
-    K: Eq + Hash + Copy + Default + ToString,
-    V: DefaultLocalizer + Reflect,
-    U,
-    E,
->(
+fn apply_translation<'a, L: LocalizerTrait, U, E>(
     commands: &mut [poise::Command<U, E>],
-    locale_accesses: &LocaleAccesses<'a, K, V>,
-) {
+    locale_accesses: &LocaleAccesses<'a, L>,
+) where
+    L::Key: Display,
+    L::Value: Reflect,
+{
     for command in &mut *commands {
         // Recursive case to apply on subcommands too.
         apply_translation(&mut command.subcommands, &locale_accesses);
@@ -83,7 +76,9 @@ fn apply_translation<
             .map(|l| (l.clone(), format!("{}.{}", command.name, l)))
             .collect_vec();
 
-        let permutations = iproduct!(locale_accesses, &locale_tags);
+        // All combinations of locale acesses and locale tags that can
+        // be used for this command.
+        let permutations = iproduct!(&locale_accesses.0, &locale_tags);
 
         for ((lang_key, access), (locale_type, tag)) in permutations {
             let possible_resource = access.rs::<R>(&tag);
@@ -107,6 +102,8 @@ fn apply_translation<
                         .insert(applied_locale, localized_key);
                 }
             };
+
+            // Must also implement command parameters and choices localization
         }
     }
 }

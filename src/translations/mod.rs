@@ -8,9 +8,7 @@ nestruct::nest! {
     #[derive(Default, Debug, bevy_reflect::Reflect)]
     RikaLocalizer {
         user: {
-            name: lexicon::R?,
             avatar: {
-                name: lexicon::R?,
                 footer: {
                     eq: lexicon::R?,
                     other: lexicon::GR<String>?

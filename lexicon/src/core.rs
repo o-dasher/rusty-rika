@@ -55,14 +55,15 @@ impl<K: Eq + Hash + Copy + Default, V: DefaultLocalizer> LocalizerTrait for Loca
 }
 
 /// A wrapper for a localizer that provides access to the localizer for a given locale.
-pub struct LocaleAccess<'a, K: Eq + Hash + Copy + Default, V: DefaultLocalizer> {
-    pub localizer: &'a Localizer<K, V>,
-    pub to: &'a V,
+pub struct LocaleAccess<'a, L: LocalizerTrait> {
+    pub localizer: &'a Localizer<L::Key, L::Value>,
+    pub to: &'a L::Value,
 }
 
-impl<'a, K: Eq + Hash + Copy + Default, V: DefaultLocalizer> LocaleAccess<'a, K, V> {
+impl<'a, L: LocalizerTrait> LocaleAccess<'a, L> {
     /// Returns the localized value for the given locale, or the default value if the locale is not
-    pub fn r<Resource>(&self, accessing: fn(&'a V) -> &'a Option<Resource>) -> &'a Resource {
+    /// properly declared and found.
+    pub fn r<Resource>(&self, accessing: fn(&'a L::Value) -> &'a Option<Resource>) -> &'a Resource {
         accessing(self.to)
             .as_ref()
             .unwrap_or_else(|| accessing(self.localizer.ref_default()).as_ref().unwrap())
@@ -82,8 +83,9 @@ impl<V: DefaultLocalizer + Reflect> LexiconThroughPath for V {
     }
 }
 
-impl<'a, K: Eq + Hash + Copy + Default, V: DefaultLocalizer + Reflect> LexiconThroughPath
-    for LocaleAccess<'a, K, V>
+impl<'a, L: LocalizerTrait> LexiconThroughPath for LocaleAccess<'a, L>
+where
+    L::Value: Reflect,
 {
     fn rs<Resource: Reflect + TypePath + FromReflect>(
         &self,
@@ -95,32 +97,28 @@ impl<'a, K: Eq + Hash + Copy + Default, V: DefaultLocalizer + Reflect> LexiconTh
     }
 }
 
-// This trait is used to automatically also provide a way to get a locale from an option locale
-// if the Key that is being used applies the trait "FromStr".
-pub trait LocaleFromOptionString {
-    fn from_option_locale(value: Option<&str>) -> Self;
-}
+// A NewType wrapper for a locale key with extended capabilities.
+pub struct LocaleKey<K: Eq + Hash + Copy + Default + FromStr>(pub K);
 
-pub trait LocaleFromString {
-    fn get_locale_from_string(value: &str) -> Self;
-}
-
-impl<K: Eq + Hash + Copy + Default + FromStr> LocaleFromString for K {
-    fn get_locale_from_string(value: &str) -> Self {
-        K::from_str(value).unwrap_or_default()
+impl<K: Eq + Hash + Copy + Default + FromStr> From<&str> for LocaleKey<K> {
+    fn from(value: &str) -> Self {
+        LocaleKey(K::from_str(value).unwrap_or_default())
     }
 }
 
-impl<K: Eq + Hash + Copy + Default + FromStr + LocaleFromString> LocaleFromOptionString for K {
-    fn from_option_locale(value: Option<&str>) -> Self {
+impl<K: Eq + Hash + Copy + Default + FromStr> From<Option<&str>> for LocaleKey<K> {
+    fn from(value: Option<&str>) -> Self {
         match value {
-            Some(v) => K::get_locale_from_string(v),
-            None => K::default(),
+            Some(v) => v.into(),
+            None => LocaleKey(K::default()),
         }
     }
 }
 
-impl<K: Eq + Hash + Copy + Default, V: DefaultLocalizer> Localizer<K, V> {
+impl<K: Eq + Hash + Copy + Default, V: DefaultLocalizer> Localizer<K, V>
+where
+    Self: LocalizerTrait<Key = K, Value = V>,
+{
     /// Creates a new localizer from a store of localizers.
     pub fn new(store: Vec<(K, fn() -> V)>) -> Self {
         let mut store = LocalizerStore::from(store);
@@ -143,7 +141,7 @@ impl<K: Eq + Hash + Copy + Default, V: DefaultLocalizer> Localizer<K, V> {
     }
 
     /// Returns a wrapper for the localizer that provides access to the localizer for a given locale.
-    pub fn get<'a>(&'a self, locale: impl Into<K>) -> LocaleAccess<'a, K, V> {
+    pub fn get<'a>(&'a self, locale: impl Into<K>) -> LocaleAccess<'a, Self> {
         LocaleAccess {
             localizer: &self,
             to: self.ref_any(&locale.into()),
