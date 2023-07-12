@@ -141,7 +141,7 @@ where
     }
 
     /// Returns a wrapper for the localizer that provides access to the localizer for a given locale.
-     pub fn get<'a>(&'a self, locale: impl Into<K>) -> LocaleAccess<'a, Self> {
+    pub fn get<'a>(&'a self, locale: impl Into<K>) -> LocaleAccess<'a, Self> {
         LocaleAccess {
             localizer: &self,
             to: self.ref_any(&locale.into()),
