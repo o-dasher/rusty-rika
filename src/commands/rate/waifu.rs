@@ -22,14 +22,14 @@ pub async fn waifu(
     let i18n = ctx.i18n();
 
     let mut hasher = DefaultHasher::new();
-    who.hash(&mut hasher);
+    who.to_lowercase().hash(&mut hasher);
     let seed_hash = hasher.finish();
 
     let mut rng = rand::rngs::StdRng::seed_from_u64(seed_hash);
 
     let rating = rng.gen_range(1..=10);
 
-    let rated = mono(t!(i18n.rate.rated).r((who, rating.to_string())));
+    let rated = t!(i18n.rate.rated).r((mono(who), rating.to_string()));
     let feedback = t!(i18n.rate.feedback)
         .get(rating - 1)
         .and_then(|fb| fb.choose(&mut rng))
