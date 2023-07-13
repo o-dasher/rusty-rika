@@ -10,6 +10,8 @@ pub enum RikaError {
     Serenity(serenity_prelude::Error),
 
     Anyhow(anyhow::Error),
+
+    Fallthrough,
 }
 
 pub async fn on_error(
@@ -19,15 +21,23 @@ pub async fn on_error(
         poise::FrameworkError::Command { error, ctx } => {
             tracing::warn!("FrameworkCommand: {error}");
 
+            let reply_error = |message: &str| {
+                let content = MessageBuilder::new()
+                    .push_bold(format!("{} | {}", RikaMoji::X, message))
+                    .build();
+
+                ctx.send(|r| r.content(content).ephemeral(true))
+            };
+
             match error {
                 RikaError::Anyhow(e) => {
-                    let content = MessageBuilder::new()
-                        .push_bold(format!("{} | {}", RikaMoji::X, e.to_string()))
-                        .build();
-
-                    ctx.send(|b| b.content(content).ephemeral(true)).await?;
+                    reply_error(&e.to_string()).await?;
                 }
-                e => error!("{}", e),
+                e => {
+                    error!("{}", e);
+                    reply_error("Something unexpected happened while executing this command...")
+                        .await?;
+                }
             }
         }
         e => poise::builtins::on_error(e)

@@ -4,6 +4,7 @@ pub mod pt_br;
 use derive_more::From;
 use strum::{Display, EnumString};
 
+
 nestruct::nest! {
     #[derive(Default, Debug, bevy_reflect::Reflect)]
     RikaLocalizer {
@@ -21,6 +22,10 @@ nestruct::nest! {
                 }
             }
         },
+        rate: {
+            rated: lexicon::GR<(String, String)>?,
+            feedback: Vec<Vec<String>>?
+        }
     }
 }
 

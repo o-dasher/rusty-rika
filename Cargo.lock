@@ -1344,6 +1344,7 @@ dependencies = [
  "nestruct",
  "paste",
  "poise",
+ "rand",
  "roricon",
  "serde",
  "structstruck",

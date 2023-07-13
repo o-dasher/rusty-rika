@@ -3,7 +3,7 @@ pub mod error;
 pub mod translations;
 pub mod utils;
 
-use commands::{math::math, owner::owner, user::user};
+use commands::{math::math, owner::owner, rate::rate, user::user};
 use dotenvy::dotenv;
 use error::RikaError;
 use lexicon::Localizer;
@@ -43,7 +43,7 @@ async fn main() {
 
     let config = envy::from_env::<RikaConfig>().expect("Environment variables must be set");
 
-    let mut commands = vec![user(), owner(), math()];
+    let mut commands = vec![user(), owner(), math(), rate()];
     let locales = Localizer::new(vec![(RikaLocale::BrazilianPortuguese, locale_pt_br)]);
 
     apply_translations(&mut commands, &locales);

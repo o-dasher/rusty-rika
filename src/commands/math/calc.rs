@@ -2,7 +2,11 @@ use anyhow::anyhow;
 use lexicon::t;
 use roricon::RoriconTrait;
 
-use crate::{commands::CommandReturn, utils::markdown::{mono, bold}, RikaContext};
+use crate::{
+    commands::CommandReturn,
+    utils::markdown::{bold, mono},
+    RikaContext,
+};
 
 #[poise::command(slash_command)]
 pub async fn calc(
