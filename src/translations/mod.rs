@@ -7,6 +7,12 @@ use strum::{Display, EnumString};
 nestruct::nest! {
     #[derive(Default, Debug, bevy_reflect::Reflect)]
     RikaLocalizer {
+        math: {
+            calc: {
+                error_parse_fail: lexicon::GR<String>?,
+                results_in: lexicon::GR<(String, String)>?
+            }
+        },
         user: {
             avatar: {
                 footer: {

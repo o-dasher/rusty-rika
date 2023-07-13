@@ -4,6 +4,10 @@ macro_rules! r {
     (|$args:ident| $lit:literal) => {
         Some(GR::new(|$args| format!($lit)))
     };
+
+    (|($($args:pat),*)| $lit:literal) => {
+        Some(GR::new(|($($args),*)| format!($lit)))
+    };
     ($lit:literal) => {
         Some(format!($lit))
     };

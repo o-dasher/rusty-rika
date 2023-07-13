@@ -1,11 +1,12 @@
 use std::fmt::Display;
 
-use strum::{IntoStaticStr};
+use strum::IntoStaticStr;
 
 #[derive(IntoStaticStr)]
 #[strum(serialize_all = "snake_case")]
 pub enum RikaMoji {
     Art,
+    X,
 }
 
 impl Display for RikaMoji {

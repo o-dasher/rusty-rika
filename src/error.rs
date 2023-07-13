@@ -1,9 +1,9 @@
 use derive_more::From;
 use log::error;
-use poise::serenity_prelude;
+use poise::serenity_prelude::{self, MessageBuilder};
 use strum::Display;
 
-use crate::RikaData;
+use crate::{utils::emojis::RikaMoji, RikaData};
 
 #[derive(Debug, From, Display)]
 pub enum RikaError {
@@ -19,8 +19,16 @@ pub async fn on_error(
         poise::FrameworkError::Command { error, ctx } => {
             tracing::warn!("FrameworkCommand: {error}");
 
-            ctx.send(|b| b.content(error.to_string()).ephemeral(true))
-                .await?;
+            match error {
+                RikaError::Anyhow(e) => {
+                    let content = MessageBuilder::new()
+                        .push_bold(format!("{} | {}", RikaMoji::X, e.to_string()))
+                        .build();
+
+                    ctx.send(|b| b.content(content).ephemeral(true)).await?;
+                }
+                e => error!("{}", e),
+            }
         }
         e => poise::builtins::on_error(e)
             .await
@@ -29,4 +37,3 @@ pub async fn on_error(
 
     Ok(())
 }
-
