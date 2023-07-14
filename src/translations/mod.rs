@@ -4,7 +4,6 @@ pub mod pt_br;
 use derive_more::From;
 use strum::{Display, EnumString};
 
-
 nestruct::nest! {
     #[derive(Default, Debug, bevy_reflect::Reflect)]
     RikaLocalizer {
@@ -12,6 +11,12 @@ nestruct::nest! {
             calc: {
                 error_parse_fail: lexicon::GR<String>?,
                 results_in: lexicon::GR<(String, String)>?
+            }
+        },
+        osu: {
+            link: {
+                failed: lexicon::GR<String>?,
+                linked: lexicon::GR<String>?
             }
         },
         user: {

@@ -3,7 +3,7 @@ pub mod error;
 pub mod translations;
 pub mod utils;
 
-use commands::{math::math, owner::owner, rate::rate, user::user};
+use commands::{math::math, osu::osu, owner::owner, rate::rate, user::user};
 use dotenvy::dotenv;
 use error::RikaError;
 use lexicon::Localizer;
@@ -15,17 +15,23 @@ use poise::{
 };
 use roricon::{apply_translations, RoriconMetaTrait};
 use serde::Deserialize;
+use sqlx::{postgres::PgPoolOptions, PgPool};
 use translations::{pt_br::locale_pt_br, rika_localizer::RikaLocalizer, RikaLocale};
 
 #[derive(Deserialize)]
 pub struct RikaConfig {
     bot_token: String,
     development_guild: u64,
+    osu_client_id: u64,
+    osu_client_secret: String,
+    database_url: String,
 }
 
 pub struct RikaData {
-    config: RikaConfig,
-    locales: Localizer<RikaLocale, RikaLocalizer>,
+    pub config: RikaConfig,
+    pub locales: Localizer<RikaLocale, RikaLocalizer>,
+    pub rosu: rosu_v2::Osu,
+    pub db: PgPool,
 }
 
 pub type RikaContext<'a> = poise::Context<'a, RikaData, RikaError>;
@@ -43,7 +49,7 @@ async fn main() {
 
     let config = envy::from_env::<RikaConfig>().expect("Environment variables must be set");
 
-    let mut commands = vec![user(), owner(), math(), rate()];
+    let mut commands = vec![user(), owner(), math(), rate(), osu()];
     let locales = Localizer::new(vec![(RikaLocale::BrazilianPortuguese, locale_pt_br)]);
 
     apply_translations(&mut commands, &locales);
@@ -56,15 +62,34 @@ async fn main() {
         })
         .token(&config.bot_token)
         .intents(GatewayIntents::non_privileged())
-        .setup(move |ctx, _ready, _framework| {
+        .setup(move |ctx, _ready, framework| {
             Box::pin(async move {
                 poise::builtins::register_in_guild(
                     ctx,
-                    &vec![owner()],
+                    &framework.options().commands,
                     GuildId(config.development_guild),
                 )
                 .await?;
-                Ok(RikaData { config, locales })
+
+                let rosu = rosu_v2::Osu::builder()
+                    .client_id(config.osu_client_id)
+                    .client_secret(&config.osu_client_secret)
+                    .build()
+                    .await
+                    .expect("Failed to connect to osu! api");
+
+                let db = PgPoolOptions::new()
+                    .max_connections(10)
+                    .connect(&config.database_url)
+                    .await
+                    .expect("Failed to connect to database!");
+
+                Ok(RikaData {
+                    config,
+                    locales,
+                    rosu,
+                    db,
+                })
             })
         })
         .run()
