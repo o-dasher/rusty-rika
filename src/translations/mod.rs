@@ -17,6 +17,9 @@ nestruct::nest! {
             link: {
                 failed: lexicon::GR<String>?,
                 linked: lexicon::GR<String>?
+            },
+            submit: {
+                submitted: lexicon::R?
             }
         },
         user: {

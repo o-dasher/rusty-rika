@@ -7,20 +7,27 @@ CREATE TABLE rika_user (
 );
 
 CREATE TABLE osu_user (
-    id BIGINT PRIMARY KEY,
-    rika_user_id BIGINT UNIQUE,
-    
-    FOREIGN KEY (rika_user_id) REFERENCES rika_user (id)
+    id BIGINT PRIMARY KEY
 );
 
+CREATE TABLE osu_score (
+    id BIGINT PRIMARY KEY,
+    osu_user_id BIGINT NOT NULL,
+
+    mode SMALLINT NOT NULL,
+    
+    FOREIGN KEY (osu_user_id) REFERENCES osu_user (id)
+);
+
+
 CREATE TABLE osu_performance (
-    osu_user_id BIGINT PRIMARY KEY,
+    id BIGINT PRIMARY KEY,
 
     aim FLOAT NOT NULL,
     speed FLOAT NOT NULL,
     accuracy FLOAT NOT NULL,
+    flashlight FLOAT NOT NULL,
     overall FLOAT NOT NULL,
 
-    FOREIGN KEY (osu_user_id) REFERENCES osu_user (id)
+    FOREIGN KEY (id) REFERENCES osu_score (id)
 );
-

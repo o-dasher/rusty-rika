@@ -2,7 +2,7 @@ use lexicon::*;
 
 use super::rika_localizer::{
     math::{calc::Calc, Math},
-    osu::{link::Link, Osu},
+    osu::{link::Link, Osu, submit::Submit},
     rate::Rate,
     user::{
         avatar::{footer::Footer, Avatar},
@@ -24,6 +24,10 @@ impl DefaultLocalizer for RikaLocalizer {
                 link: Link {
                     failed: r!(|who| "Failed to link to {who}"),
                     linked: r!(|who| "Linked to osu! account {who}"),
+                },
+                submit: Submit {
+                    submitted: r!("Submitted scores successfullty!")
+
                 },
             },
             user: User {

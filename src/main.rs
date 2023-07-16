@@ -17,6 +17,7 @@ use roricon::{apply_translations, RoriconMetaTrait};
 use serde::Deserialize;
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use translations::{pt_br::locale_pt_br, rika_localizer::RikaLocalizer, RikaLocale};
+use utils::osu::BeatmapCache;
 
 #[derive(Deserialize)]
 pub struct RikaConfig {
@@ -31,6 +32,7 @@ pub struct RikaData {
     pub config: RikaConfig,
     pub locales: Localizer<RikaLocale, RikaLocalizer>,
     pub rosu: rosu_v2::Osu,
+    pub beatmap_cache: BeatmapCache,
     pub db: PgPool,
 }
 
@@ -84,10 +86,13 @@ async fn main() {
                     .await
                     .expect("Failed to connect to database!");
 
+                let beatmap_cache = BeatmapCache::new();
+
                 Ok(RikaData {
                     config,
                     locales,
                     rosu,
+                    beatmap_cache,
                     db,
                 })
             })

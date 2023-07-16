@@ -1,12 +1,13 @@
-use derive_more::From;
-use log::error;
-use poise::serenity_prelude;
-use strum::Display;
-
 use crate::{
+    commands::osu::submit::SubmissionError,
     utils::{emojis::RikaMoji, markdown::bold, replies::cool_text},
     RikaData,
 };
+use derive_more::From;
+use log::error;
+use poise::serenity_prelude;
+use rosu_v2::prelude::OsuError;
+use strum::Display;
 
 #[derive(Debug, From, Display)]
 pub enum RikaError {
@@ -14,6 +15,9 @@ pub enum RikaError {
 
     Anyhow(anyhow::Error),
     Sqlx(sqlx::Error),
+    Osu(OsuError),
+    Rosu(rosu_pp::ParseError),
+    Submission(SubmissionError),
 
     Fallthrough,
 }
@@ -31,15 +35,23 @@ pub async fn on_error(
                 ctx.send(|r| r.content(content).ephemeral(true))
             };
 
+            macro_rules! handle {
+                ($a:expr, $b:expr) => {{
+                    error!("{:?}", $a);
+                    reply_error(&$b.to_string()).await?;
+                }};
+                ($var:expr) => {
+                    handle!($var, $var)
+                };
+            }
+
             match error {
-                RikaError::Anyhow(e) => {
-                    reply_error(&e.to_string()).await?;
-                }
-                e => {
-                    error!("{e:?}");
-                    reply_error("Something unexpected happened while executing this command...")
-                        .await?;
-                }
+                RikaError::Anyhow(e) => handle!(e),
+                RikaError::Submission(e) => handle!(e),
+                e => handle!(
+                    e,
+                    "Something unexpected happened while executing this command."
+                ),
             }
         }
         e => poise::builtins::on_error(e)
