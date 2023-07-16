@@ -11,8 +11,8 @@ use crate::{
 
 #[poise::command(slash_command)]
 pub async fn recommend(ctx: RikaContext<'_>) -> CommandReturn {
-    let i18n = ctx.i18n();
-    let RikaData { rosu, db, .. } = ctx.data();
+    let _i18n = ctx.i18n();
+    let RikaData {  db, .. } = ctx.data();
 
     let (.., osu_id) = ctx.linked_osu_user().await?;
 
