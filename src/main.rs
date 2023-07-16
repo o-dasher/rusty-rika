@@ -17,7 +17,7 @@ use poise::{
 };
 use roricon::{apply_translations, RoriconMetaTrait};
 use serde::Deserialize;
-use sqlx::{MySqlPool, pool::PoolOptions};
+use sqlx::{pool::PoolOptions, MySqlPool};
 use translations::{pt_br::locale_pt_br, rika_localizer::RikaLocalizer, RikaLocale};
 use utils::osu::BeatmapCache;
 

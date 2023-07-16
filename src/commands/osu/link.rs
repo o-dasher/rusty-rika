@@ -18,7 +18,7 @@ pub async fn link(ctx: RikaContext<'_>, name: String) -> CommandReturn {
         .await
         .map_err(|_| anyhow!(t!(i18n.osu.link.failed).r(name.clone())))?;
 
-    let osu_user_id = osu_user.user_id as i64;
+    let osu_user_id = osu_user.user_id ;
 
     let mut tx = db.begin().await?;
 

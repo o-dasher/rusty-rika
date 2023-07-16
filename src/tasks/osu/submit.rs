@@ -1,4 +1,4 @@
-use std::collections::{HashSet};
+use std::collections::HashSet;
 
 use derive_more::From;
 use log::{info, warn};
@@ -38,7 +38,7 @@ pub async fn submit_scores(
         JOIN osu_performance pp ON s.id = pp.id
         WHERE s.osu_user_id = ? AND s.mode = ?
         ",
-        osu_id as i16,
+        osu_id,
         mode_bits
     )
     .fetch_all(db)
@@ -53,7 +53,7 @@ pub async fn submit_scores(
             continue;
         };
 
-        if existing_scores.contains(&(score.map_id as i64)) {
+        if existing_scores.contains(&(score.map_id)) {
             warn!("MEH");
             continue;
         }
