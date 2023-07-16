@@ -24,10 +24,10 @@ pub async fn link(ctx: RikaContext<'_>, name: String) -> CommandReturn {
 
     sqlx::query!(
         "
-        INSERT INTO rika_user (discord_id)
-        VALUES ($1)
-        ON CONFLICT (discord_id) DO UPDATE
-        SET osu_id = $2
+        INSERT INTO rika_user (discord_id, osu_id)
+        VALUES (?, ?)
+        ON DUPLICATE KEY UPDATE
+            osu_id = VALUES(osu_id)
         ",
         &ctx.author().id.to_string(),
         &osu_user_id
@@ -37,9 +37,8 @@ pub async fn link(ctx: RikaContext<'_>, name: String) -> CommandReturn {
 
     sqlx::query!(
         "
-        INSERT INTO osu_user (id)
-        VALUES ($1)
-        ON CONFLICT DO NOTHING
+        INSERT IGNORE INTO osu_user (id)
+        VALUES (?)
         ",
         &osu_user_id,
     )

@@ -3,13 +3,13 @@ pub mod recommend;
 pub mod submit;
 
 use link::link;
-use recommend::recommend;
 use poise::{async_trait, command, ChoiceParameter};
+use recommend::recommend;
 use rosu_v2::prelude::GameMode;
 use sqlx::Result;
 use submit::submit;
 
-use crate::{commands::CommandReturn, models::rika_user::RikaUser, RikaContext, RikaData};
+use crate::{commands::CommandReturn, RikaContext, RikaData};
 
 #[command(slash_command, subcommands("link", "submit", "recommend"))]
 pub async fn osu(_ctx: RikaContext<'_>) -> CommandReturn {
@@ -40,25 +40,24 @@ pub enum RikaOsuError {
 
 #[async_trait]
 pub trait RikaOsuContext {
-    async fn linked_osu_user(&self) -> Result<(RikaUser, i64), RikaOsuError>;
+    async fn linked_osu_user(&self) -> Result<((), u32), RikaOsuError>;
 }
 
 #[async_trait]
 impl RikaOsuContext for RikaContext<'_> {
-    async fn linked_osu_user(&self) -> Result<(RikaUser, i64), RikaOsuError> {
+    async fn linked_osu_user(&self) -> Result<((), u32), RikaOsuError> {
         let RikaData { db, .. } = self.data();
 
-        let rika_user: RikaUser = sqlx::query_as!(
-            RikaUser,
-            "SELECT * FROM rika_user WHERE discord_id=$1",
+        let user = sqlx::query!(
+            "SELECT * FROM rika_user WHERE discord_id=?",
             &self.author().id.to_string()
         )
         .fetch_one(db)
         .await
         .map_err(|_| RikaOsuError::NotLinked)?;
 
-        let osu_id = rika_user.osu_id.ok_or_else(|| RikaOsuError::NotLinked)?;
+        let osu_id = user.osu_id.ok_or_else(|| RikaOsuError::NotLinked)?;
 
-        Ok((rika_user, osu_id))
+        Ok(((), osu_id))
     }
 }

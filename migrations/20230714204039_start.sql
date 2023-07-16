@@ -3,16 +3,16 @@ CREATE TABLE rika_user (
     id SERIAL PRIMARY KEY NOT NULL,
 
     discord_id VARCHAR(255) UNIQUE,
-    osu_id BIGINT UNIQUE
+    osu_id INT UNSIGNED UNIQUE
 );
 
 CREATE TABLE osu_user (
-    id BIGINT PRIMARY KEY NOT NULL
+    id INT UNSIGNED PRIMARY KEY NOT NULL
 );
 
 CREATE TABLE osu_score (
-    id BIGINT PRIMARY KEY NOT NULL,
-    osu_user_id BIGINT NOT NULL,
+    id BIGINT UNSIGNED PRIMARY KEY NOT NULL,
+    osu_user_id INT UNSIGNED NOT NULL,
 
     mods INT NOT NULL,
     map_id BIGINT NOT NULL,
@@ -24,7 +24,7 @@ CREATE TABLE osu_score (
 
 
 CREATE TABLE osu_performance (
-    id BIGINT PRIMARY KEY NOT NULL,
+    id BIGINT UNSIGNED PRIMARY KEY NOT NULL,
 
     aim FLOAT NOT NULL,
     speed FLOAT NOT NULL,

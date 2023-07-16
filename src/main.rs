@@ -17,8 +17,7 @@ use poise::{
 };
 use roricon::{apply_translations, RoriconMetaTrait};
 use serde::Deserialize;
-use sqlx::{postgres::PgPoolOptions, PgPool};
-use tasks::osu::submit::submit_scores;
+use sqlx::{MySqlPool, pool::PoolOptions};
 use translations::{pt_br::locale_pt_br, rika_localizer::RikaLocalizer, RikaLocale};
 use utils::osu::BeatmapCache;
 
@@ -36,7 +35,7 @@ pub struct RikaData {
     pub locales: Localizer<RikaLocale, RikaLocalizer>,
     pub rosu: rosu_v2::Osu,
     pub beatmap_cache: BeatmapCache,
-    pub db: PgPool,
+    pub db: MySqlPool,
 }
 
 pub type RikaContext<'a> = poise::Context<'a, RikaData, RikaError>;
@@ -83,7 +82,7 @@ async fn main() {
                     .await
                     .expect("Failed to connect to osu! api");
 
-                let db = PgPoolOptions::new()
+                let db = PoolOptions::new()
                     .max_connections(10)
                     .connect(&config.database_url)
                     .await

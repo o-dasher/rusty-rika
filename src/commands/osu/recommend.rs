@@ -1,23 +1,13 @@
 use anyhow::anyhow;
 use num_traits::Float;
 use roricon::RoriconTrait;
-use rosu_pp::Mods;
 use rosu_v2::prelude::GameMods;
 use tuple_map::TupleMap4;
 
 use crate::{
     commands::{osu::RikaOsuContext, CommandReturn},
-    models::osu_score::OsuScore,
     RikaContext, RikaData,
 };
-
-#[derive(sqlx::FromRow)]
-struct OsuPerformanceAverage {
-    speed: Option<f64>,
-    accuracy: Option<f64>,
-    aim: Option<f64>,
-    flashlight: Option<f64>,
-}
 
 #[poise::command(slash_command)]
 pub async fn recommend(ctx: RikaContext<'_>) -> CommandReturn {
@@ -26,8 +16,7 @@ pub async fn recommend(ctx: RikaContext<'_>) -> CommandReturn {
 
     let (.., osu_id) = ctx.linked_osu_user().await?;
 
-    let user_average = sqlx::query_as!(
-        OsuPerformanceAverage,
+    let user_average = sqlx::query!(
         "
         SELECT
         AVG(pp.speed) as speed,
@@ -36,7 +25,7 @@ pub async fn recommend(ctx: RikaContext<'_>) -> CommandReturn {
         AVG(pp.flashlight) as flashlight
         FROM osu_score s
         JOIN osu_performance pp ON s.id = pp.id
-        WHERE osu_user_id = $1
+        WHERE osu_user_id = ?
         ",
         osu_id
     )
@@ -72,12 +61,12 @@ pub async fn recommend(ctx: RikaContext<'_>) -> CommandReturn {
         JOIN osu_performance pp ON s.id = pp.id
         GROUP BY s.id
         HAVING
-        s.osu_user_id != $1 AND
-        AVG(pp.speed) BETWEEN $2 AND $3 AND
-        AVG(pp.accuracy) BETWEEN $4 AND $5 AND
-        AVG(pp.aim) BETWEEN $6 AND $7 AND
-        AVG(pp.flashlight) BETWEEN $8 AND $9
-        ORDER BY RANDOM()
+            s.osu_user_id != ? AND
+            AVG(pp.speed) BETWEEN ? AND ? AND
+            AVG(pp.accuracy) BETWEEN ? AND ? AND
+            AVG(pp.aim) BETWEEN ? AND ? AND
+            AVG(pp.flashlight) BETWEEN ? AND ?
+        ORDER BY RAND()
         ",
         osu_id,
         min_speed,

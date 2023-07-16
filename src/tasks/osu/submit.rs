@@ -1,20 +1,15 @@
 use std::collections::{HashMap, HashSet};
 
 use derive_more::From;
-use itertools::Itertools;
 use log::{info, warn};
 use rosu_pp::{osu::OsuPerformanceAttributes, OsuPP};
 use rosu_v2::prelude::GameMode;
 
-use crate::{
-    commands::CommandReturn,
-    models::osu_score::{OsuPerformance, OsuScore},
-    RikaData,
-};
+use crate::{commands::CommandReturn, RikaData};
 
 #[derive(From)]
 pub enum SubmissionID {
-    ByStoredID(i64),
+    ByStoredID(u32),
     ByUsername(String),
 }
 
@@ -31,7 +26,7 @@ pub async fn submit_scores(
     let mode_bits = mode as i16;
 
     let osu_id = match osu_id.into() {
-        SubmissionID::ByStoredID(id) => id as u32,
+        SubmissionID::ByStoredID(id) => id,
         SubmissionID::ByUsername(username) => rosu.user(username).await?.user_id,
     };
 
@@ -41,7 +36,7 @@ pub async fn submit_scores(
         "
         SELECT s.map_id FROM osu_score s
         JOIN osu_performance pp ON s.id = pp.id
-        WHERE s.osu_user_id = $1 AND s.mode = $2
+        WHERE s.osu_user_id = ? AND s.mode = ?
         ",
         osu_id as i16,
         mode_bits
@@ -82,17 +77,15 @@ pub async fn submit_scores(
             .n50(score.statistics.count_50 as usize)
             .calculate();
 
-        let stored_score_id = score_id as i64;
-
         sqlx::query!(
             "
             INSERT INTO osu_score (id, osu_user_id, map_id, mods, mode)
-            VALUES ($1, $2, $3, $4, $5)
+            VALUES (?, ?, ?, ?, ?)
             ",
-            stored_score_id,
-            osu_id as i64,
-            score.map_id as i64,
-            score.mods.bits() as i32,
+            score_id,
+            osu_id,
+            score.map_id,
+            score.mods.bits(),
             mode_bits
         )
         .execute(&mut *tx)
@@ -101,9 +94,9 @@ pub async fn submit_scores(
         sqlx::query!(
             "
             INSERT INTO osu_performance (id, aim, speed, flashlight, accuracy, overall)
-            VALUES ($1, $2, $3, $4, $5, $6)
+            VALUES (?, ?, ?, ?, ?, ?)
             ",
-            stored_score_id,
+            score_id,
             pp_aim,
             pp_speed,
             pp_flashlight,
