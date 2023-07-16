@@ -1,5 +1,5 @@
 use crate::{
-    commands::osu::submit::SubmissionError,
+    commands::osu::RikaOsuError,
     utils::{emojis::RikaMoji, markdown::bold, replies::cool_text},
     RikaData,
 };
@@ -17,7 +17,7 @@ pub enum RikaError {
     Sqlx(sqlx::Error),
     Osu(OsuError),
     Rosu(rosu_pp::ParseError),
-    Submission(SubmissionError),
+    RikaOsu(RikaOsuError),
 
     Fallthrough,
 }
@@ -47,7 +47,7 @@ pub async fn on_error(
 
             match error {
                 RikaError::Anyhow(e) => handle!(e),
-                RikaError::Submission(e) => handle!(e),
+                RikaError::RikaOsu(e) => handle!(e),
                 e => handle!(
                     e,
                     "Something unexpected happened while executing this command."

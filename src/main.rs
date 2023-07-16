@@ -1,5 +1,7 @@
 pub mod commands;
 pub mod error;
+pub mod models;
+pub mod tasks;
 pub mod translations;
 pub mod utils;
 
@@ -16,6 +18,7 @@ use poise::{
 use roricon::{apply_translations, RoriconMetaTrait};
 use serde::Deserialize;
 use sqlx::{postgres::PgPoolOptions, PgPool};
+use tasks::osu::submit::submit_scores;
 use translations::{pt_br::locale_pt_br, rika_localizer::RikaLocalizer, RikaLocale};
 use utils::osu::BeatmapCache;
 
@@ -88,13 +91,16 @@ async fn main() {
 
                 let beatmap_cache = BeatmapCache::new();
 
-                Ok(RikaData {
+                let rika_data = RikaData {
                     config,
                     locales,
                     rosu,
                     beatmap_cache,
                     db,
-                })
+                };
+
+
+                Ok(rika_data)
             })
         })
         .run()

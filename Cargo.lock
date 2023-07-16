@@ -1789,6 +1789,7 @@ dependencies = [
  "env_logger",
  "envy",
  "exmex",
+ "itertools 0.11.0",
  "lexicon",
  "log",
  "nestruct",
@@ -1807,6 +1808,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "tuple-map",
 ]
 
 [[package]]
@@ -2850,6 +2852,12 @@ dependencies = [
  "utf-8",
  "webpki",
 ]
+
+[[package]]
+name = "tuple-map"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23d5919d7121237af683b7fa982450597b1eaa2643e597aec3b519e4e5ab3d62"
 
 [[package]]
 name = "typemap_rev"
