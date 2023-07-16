@@ -99,7 +99,6 @@ async fn main() {
                     db,
                 };
 
-
                 Ok(rika_data)
             })
         })

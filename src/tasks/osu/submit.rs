@@ -1,10 +1,16 @@
+use std::collections::{HashMap, HashSet};
+
 use derive_more::From;
 use itertools::Itertools;
-use log::info;
+use log::{info, warn};
 use rosu_pp::{osu::OsuPerformanceAttributes, OsuPP};
 use rosu_v2::prelude::GameMode;
 
-use crate::{commands::CommandReturn, models::osu_score::OsuPerformance, RikaData};
+use crate::{
+    commands::CommandReturn,
+    models::osu_score::{OsuPerformance, OsuScore},
+    RikaData,
+};
 
 #[derive(From)]
 pub enum SubmissionID {
@@ -31,10 +37,9 @@ pub async fn submit_scores(
 
     let osu_scores = rosu.user_scores(osu_id).limit(100).mode(mode).await?;
 
-    let rika_osu_scores: Vec<OsuPerformance> = sqlx::query_as!(
-        OsuPerformance,
+    let rika_osu_scores = sqlx::query!(
         "
-        SELECT pp.* FROM osu_score s
+        SELECT s.map_id FROM osu_score s
         JOIN osu_performance pp ON s.id = pp.id
         WHERE s.osu_user_id = $1 AND s.mode = $2
         ",
@@ -44,23 +49,20 @@ pub async fn submit_scores(
     .fetch_all(db)
     .await?;
 
+    let existing_scores: HashSet<_> = rika_osu_scores.into_iter().map(|s| s.map_id).collect();
+
     let mut tx = db.begin().await?;
 
-    let new_scores = osu_scores
-        .iter()
-        .filter_map(|s| {
-            s.score_id.and_then(|score_id| {
-                let existing = rika_osu_scores.iter().find(|s| s.id as u64 == score_id);
+    for (i, score) in osu_scores.iter().enumerate() {
+        let Some(score_id) = score.score_id else {
+            continue;
+        };
 
-                match existing {
-                    Some(..) => None,
-                    None => Some((score_id, s)),
-                }
-            })
-        })
-        .collect_vec();
+        if existing_scores.contains(&(score.map_id as i64)) {
+            warn!("MEH");
+            continue;
+        }
 
-    for (i, (score_id, score)) in new_scores.iter().enumerate() {
         let beatmap_file = beatmap_cache.get_beatmap_file(score.map_id).await?;
         let beatmap_rosu = rosu_pp::Beatmap::from_bytes(&beatmap_file).await?;
 
@@ -80,7 +82,7 @@ pub async fn submit_scores(
             .n50(score.statistics.count_50 as usize)
             .calculate();
 
-        let stored_score_id = *score_id as i64;
+        let stored_score_id = score_id as i64;
 
         sqlx::query!(
             "
@@ -89,7 +91,7 @@ pub async fn submit_scores(
             ",
             stored_score_id,
             osu_id as i64,
-            score.map_id as i32,
+            score.map_id as i64,
             score.mods.bits() as i32,
             mode_bits
         )
@@ -111,7 +113,7 @@ pub async fn submit_scores(
         .execute(&mut *tx)
         .await?;
 
-        info!("Processed score number {i} for {osu_id}");
+        info!("Processed score number {} for {osu_id}", i + 1);
     }
 
     tx.commit().await?;

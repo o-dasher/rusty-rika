@@ -15,7 +15,7 @@ CREATE TABLE osu_score (
     osu_user_id BIGINT NOT NULL,
 
     mods INT NOT NULL,
-    map_id INT NOT NULL,
+    map_id BIGINT NOT NULL,
 
     mode SMALLINT NOT NULL,
     

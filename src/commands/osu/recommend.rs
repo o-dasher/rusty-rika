@@ -1,8 +1,9 @@
+use anyhow::anyhow;
+use num_traits::Float;
 use roricon::RoriconTrait;
 use rosu_pp::Mods;
 use rosu_v2::prelude::GameMods;
 use tuple_map::TupleMap4;
-use anyhow::anyhow;
 
 use crate::{
     commands::{osu::RikaOsuContext, CommandReturn},
@@ -42,16 +43,29 @@ pub async fn recommend(ctx: RikaContext<'_>) -> CommandReturn {
     .fetch_one(db)
     .await?;
 
-    let (min_speed, min_accuracy, min_aim, min_flashlight) = (
+    let (
+        (min_speed, max_speed),
+        (min_acc, max_acc),
+        (min_aim, max_aim),
+        (min_flashlight, max_flashlight),
+    ) = (
         user_average.speed,
         user_average.accuracy,
         user_average.aim,
         user_average.flashlight,
     )
-        .map(|x| x.unwrap_or_default() * 0.75);
+        .map(|x| {
+            let x = x.unwrap_or_default();
 
-    let possible_recommendation = sqlx::query_as!(
-        OsuScore,
+            fn mid_interval<F: Float>(x: F, delta: F) -> (F, F) {
+                let d = delta / F::from(2).unwrap();
+                (x * (F::one() - d), x * (F::one() + d))
+            }
+
+            mid_interval(x, 0.5)
+        });
+
+    let possible_recommendation = sqlx::query!(
         "
         SELECT s.*
         FROM osu_score s
@@ -67,13 +81,13 @@ pub async fn recommend(ctx: RikaContext<'_>) -> CommandReturn {
         ",
         osu_id,
         min_speed,
-        user_average.speed,
-        min_accuracy,
-        user_average.accuracy,
+        max_speed,
+        min_acc,
+        max_acc,
         min_aim,
-        user_average.aim,
+        max_aim,
         min_flashlight,
-        user_average.flashlight
+        max_flashlight
     )
     .fetch_one(db)
     .await
