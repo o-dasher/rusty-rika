@@ -1,22 +1,31 @@
 pub mod commands;
 pub mod error;
+pub mod models;
 pub mod tasks;
 pub mod translations;
 pub mod utils;
+pub mod setup;
+
+use std::sync::Arc;
 
 use commands::{math::math, osu::osu, owner::owner, rate::rate, user::user};
 use dotenvy::dotenv;
 use error::RikaError;
 use lexicon::Localizer;
-use log::error;
+use log::{error, info};
+use models::osu_user::OsuUser;
 use poise::{
     futures_util::TryFutureExt,
     serenity_prelude::{GatewayIntents, GuildId},
     FrameworkOptions,
 };
 use roricon::{apply_translations, RoriconMetaTrait};
+use rosu_v2::prelude::GameMode;
 use serde::Deserialize;
+use setup::setup;
 use sqlx::{pool::PoolOptions, MySqlPool};
+use tasks::osu::submit::submit_scores;
+use tracing::warn;
 use translations::{pt_br::locale_pt_br, rika_localizer::RikaLocalizer, RikaLocale};
 use utils::osu::BeatmapCache;
 
@@ -37,7 +46,7 @@ pub struct RikaData {
     pub db: MySqlPool,
 }
 
-pub type RikaContext<'a> = poise::Context<'a, RikaData, RikaError>;
+pub type RikaContext<'a> = poise::Context<'a, Arc<RikaData>, RikaError>;
 
 impl<'a> RoriconMetaTrait<'a, RikaLocale, RikaLocalizer> for RikaContext<'a> {
     fn locales(&self) -> &'a Localizer<RikaLocale, RikaLocalizer> {
@@ -67,37 +76,7 @@ async fn main() {
         .intents(GatewayIntents::non_privileged())
         .setup(move |ctx, _ready, framework| {
             Box::pin(async move {
-                poise::builtins::register_in_guild(
-                    ctx,
-                    &framework.options().commands,
-                    GuildId(config.development_guild),
-                )
-                .await?;
-
-                let rosu = rosu_v2::Osu::builder()
-                    .client_id(config.osu_client_id)
-                    .client_secret(&config.osu_client_secret)
-                    .build()
-                    .await
-                    .expect("Failed to connect to osu! api");
-
-                let db = PoolOptions::new()
-                    .max_connections(10)
-                    .connect(&config.database_url)
-                    .await
-                    .expect("Failed to connect to database!");
-
-                let beatmap_cache = BeatmapCache::new();
-
-                let rika_data = RikaData {
-                    config,
-                    locales,
-                    rosu,
-                    beatmap_cache,
-                    db,
-                };
-
-                Ok(rika_data)
+                setup(ctx, framework, locales, config).await
             })
         })
         .run()

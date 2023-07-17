@@ -7,14 +7,14 @@ use tuple_map::TupleMap4;
 
 use crate::{
     commands::{osu::RikaOsuContext, CommandReturn},
-    utils::{emojis::RikaMoji, replies::cool_text, markdown::mono},
+    utils::{emojis::RikaMoji, markdown::mono, replies::cool_text},
     RikaContext, RikaData,
 };
 
 #[poise::command(slash_command)]
 pub async fn recommend(ctx: RikaContext<'_>) -> CommandReturn {
     let i18n = ctx.i18n();
-    let RikaData { db, .. } = ctx.data();
+    let RikaData { db, .. } = ctx.data().as_ref();
 
     let (.., osu_id) = ctx.linked_osu_user().await?;
 

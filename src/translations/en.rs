@@ -29,9 +29,9 @@ impl DefaultLocalizer for RikaLocalizer {
                     submitted: r!("Submitted scores successfullty!"),
                 },
                 recommend: Recommend {
-                    recommendation: r!(|(link, mods)| 
+                    recommendation: r!(|(link, mods)| {
                         "I recommend you to play {link} with the following mods: {mods}"
-                    ),
+                    }),
                     not_found: r!("Could not find any map to recommend for you!"),
                 },
             },

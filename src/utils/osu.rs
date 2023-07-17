@@ -1,18 +1,17 @@
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex},
-};
+use std::sync::{Arc, Mutex};
+
+use fchashmap::FcHashMap;
 
 pub struct BeatmapCache {
     pub client: reqwest::Client,
-    pub cache: Arc<Mutex<HashMap<u32, Arc<[u8]>>>>,
+    pub cache: Arc<Mutex<FcHashMap<u32, Arc<[u8]>, 256>>>,
 }
 
 impl BeatmapCache {
     pub fn new() -> Self {
         Self {
             client: reqwest::Client::new(),
-            cache: Arc::new(Mutex::new(HashMap::new())),
+            cache: Arc::new(Mutex::new(FcHashMap::new())),
         }
     }
 
@@ -35,7 +34,7 @@ impl BeatmapCache {
             .and_then(|bytes| Ok(Vec::<u8>::from(bytes).into()))?;
 
         {
-            self.cache
+            let _ = self.cache
                 .lock()
                 .unwrap()
                 .insert(beatmap_id, map_bytes.clone());

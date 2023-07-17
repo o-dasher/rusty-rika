@@ -4,6 +4,7 @@ use roricon::RoriconTrait;
 
 use crate::{
     commands::CommandReturn,
+    models::osu_user::OsuUser,
     utils::{emojis::RikaMoji, markdown::mono, replies::cool_text},
     RikaContext, RikaData,
 };
@@ -11,7 +12,7 @@ use crate::{
 #[poise::command(slash_command)]
 pub async fn link(ctx: RikaContext<'_>, name: String) -> CommandReturn {
     let i18n = ctx.i18n();
-    let RikaData { rosu, db, .. } = ctx.data();
+    let RikaData { rosu, db, .. } = ctx.data().as_ref();
 
     let osu_user = rosu
         .user(&name)
@@ -35,15 +36,7 @@ pub async fn link(ctx: RikaContext<'_>, name: String) -> CommandReturn {
     .execute(&mut *tx)
     .await?;
 
-    sqlx::query!(
-        "
-        INSERT IGNORE INTO osu_user (id)
-        VALUES (?)
-        ",
-        &osu_user_id,
-    )
-    .execute(&mut *tx)
-    .await?;
+    OsuUser::try_create(&osu_user_id).execute(&mut *tx).await?;
 
     tx.commit().await?;
 

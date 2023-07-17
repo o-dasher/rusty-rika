@@ -46,7 +46,7 @@ pub trait RikaOsuContext {
 #[async_trait]
 impl RikaOsuContext for RikaContext<'_> {
     async fn linked_osu_user(&self) -> Result<((), u32), RikaOsuError> {
-        let RikaData { db, rosu, .. } = self.data();
+        let RikaData { db, .. } = self.data().as_ref(); 
 
         let user = sqlx::query!(
             "SELECT * FROM rika_user WHERE discord_id=?",

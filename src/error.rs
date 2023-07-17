@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{
     commands::osu::RikaOsuError,
     utils::{emojis::RikaMoji, markdown::bold, replies::cool_text},
@@ -23,7 +25,7 @@ pub enum RikaError {
 }
 
 pub async fn on_error(
-    error: poise::FrameworkError<'_, RikaData, RikaError>,
+    error: poise::FrameworkError<'_, Arc<RikaData>, RikaError>,
 ) -> Result<(), RikaError> {
     match error {
         poise::FrameworkError::Command { error, ctx } => {
