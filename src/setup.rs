@@ -2,14 +2,12 @@ use std::sync::Arc;
 
 use lexicon::Localizer;
 use log::{error, info, warn};
-use poise::{
-    serenity_prelude::{self, GuildId},
-    Framework,
-};
+use poise::serenity_prelude::{self, GuildId};
 use rosu_v2::prelude::GameMode;
 use sqlx::pool::PoolOptions;
 
 use crate::{
+    commands::owner::owner,
     error::RikaError,
     models::osu_user::OsuUser,
     tasks::osu::submit::submit_scores,
@@ -20,16 +18,11 @@ use crate::{
 
 pub async fn setup(
     ctx: &serenity_prelude::Context,
-    framework: &Framework<Arc<RikaData>, RikaError>,
     locales: Localizer<RikaLocale, RikaLocalizer>,
     config: RikaConfig,
 ) -> Result<Arc<RikaData>, RikaError> {
-    poise::builtins::register_in_guild(
-        ctx,
-        &framework.options().commands,
-        GuildId(config.development_guild),
-    )
-    .await?;
+    poise::builtins::register_in_guild(ctx, &vec![owner()], GuildId(config.development_guild))
+        .await?;
 
     let rosu = rosu_v2::Osu::builder()
         .client_id(config.osu_client_id)
@@ -59,7 +52,7 @@ pub async fn setup(
     tokio::spawn(async move {
         let RikaData { rosu, db, .. } = cloned_data.as_ref();
 
-        for page in 50..60 {
+        for page in 1..100 {
             let rank = rosu
                 .performance_rankings(GameMode::Osu)
                 .country("BR")
@@ -94,4 +87,3 @@ pub async fn setup(
 
     Ok(rika_data)
 }
-

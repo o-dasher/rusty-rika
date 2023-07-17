@@ -69,8 +69,8 @@ async fn main() {
         })
         .token(&config.bot_token)
         .intents(GatewayIntents::non_privileged())
-        .setup(move |ctx, _ready, framework| {
-            Box::pin(async move { setup(ctx, framework, locales, config).await })
+        .setup(move |ctx, _ready, _framework| {
+            Box::pin(async move { setup(ctx, locales, config).await })
         })
         .run()
         .await
