@@ -12,20 +12,20 @@ use commands::{math::math, osu::osu, owner::owner, rate::rate, user::user};
 use dotenvy::dotenv;
 use error::RikaError;
 use lexicon::Localizer;
-use log::{error, info};
-use models::osu_user::OsuUser;
+use log::{error};
+
 use poise::{
     futures_util::TryFutureExt,
-    serenity_prelude::{GatewayIntents, GuildId},
+    serenity_prelude::{GatewayIntents},
     FrameworkOptions,
 };
 use roricon::{apply_translations, RoriconMetaTrait};
-use rosu_v2::prelude::GameMode;
+
 use serde::Deserialize;
 use setup::setup;
-use sqlx::{pool::PoolOptions, MySqlPool};
-use tasks::osu::submit::submit_scores;
-use tracing::warn;
+use sqlx::{MySqlPool};
+
+
 use translations::{pt_br::locale_pt_br, rika_localizer::RikaLocalizer, RikaLocale};
 use utils::osu::BeatmapCache;
 

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     commands::osu::RikaOsuError,
-    utils::{emojis::RikaMoji, markdown::bold, replies::cool_text},
+    utils::{emojis::RikaMoji, replies::cool_text},
     RikaData,
 };
 use derive_more::From;
