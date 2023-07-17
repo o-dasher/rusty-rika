@@ -20,6 +20,10 @@ nestruct::nest! {
             },
             submit: {
                 submitted: lexicon::R?
+            },
+            recommend: {
+                recommendation: lexicon::GR<(String, String)>?,
+                not_found: lexicon::R?
             }
         },
         user: {

@@ -16,7 +16,7 @@ pub async fn submit(ctx: RikaContext<'_>) -> CommandReturn {
 
     ctx.defer().await?;
 
-    submit_scores(ctx.data(), osu_id).await?;
+    submit_scores(ctx, osu_id).await?;
 
     ctx.say(cool_text(RikaMoji::Ok, &t!(i18n.osu.submit.submitted)))
         .await?;

@@ -1,13 +1,22 @@
 #[macro_export]
 // Macro to easily define an i18n resource.
 macro_rules! r {
-    (|$args:ident| $lit:literal) => {
-        Some(GR::new(|$args| format!($lit)))
-    };
-
     (|($($args:pat),*)| $lit:literal) => {
         Some(GR::new(|($($args),*)| format!($lit)))
     };
+
+    (|$args:ident| $lit:literal) => {
+        r!(|($args)| $lit);
+    };
+
+    (|($($args:pat),*)| { $lit:literal }) => {
+       r!(|($($args),*)| $lit);
+    };
+
+    (|$args:ident| { $lit:literal }) => {
+        r!(|($args)| $lit);
+    };
+
     ($lit:literal) => {
         Some(format!($lit))
     };

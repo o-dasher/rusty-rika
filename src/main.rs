@@ -1,6 +1,5 @@
 pub mod commands;
 pub mod error;
-pub mod models;
 pub mod tasks;
 pub mod translations;
 pub mod utils;

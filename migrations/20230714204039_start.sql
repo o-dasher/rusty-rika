@@ -14,7 +14,7 @@ CREATE TABLE osu_score (
     id BIGINT UNSIGNED PRIMARY KEY NOT NULL,
     osu_user_id INT UNSIGNED NOT NULL,
 
-    mods INT NOT NULL,
+    mods INT UNSIGNED NOT NULL,
     map_id INT UNSIGNED NOT NULL,
 
     mode SMALLINT NOT NULL,

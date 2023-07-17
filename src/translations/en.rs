@@ -2,7 +2,7 @@ use lexicon::*;
 
 use super::rika_localizer::{
     math::{calc::Calc, Math},
-    osu::{link::Link, Osu, submit::Submit},
+    osu::{link::Link, recommend::Recommend, submit::Submit, Osu},
     rate::Rate,
     user::{
         avatar::{footer::Footer, Avatar},
@@ -26,8 +26,13 @@ impl DefaultLocalizer for RikaLocalizer {
                     linked: r!(|who| "Linked to osu! account {who}"),
                 },
                 submit: Submit {
-                    submitted: r!("Submitted scores successfullty!")
-
+                    submitted: r!("Submitted scores successfullty!"),
+                },
+                recommend: Recommend {
+                    recommendation: r!(|(link, mods)| 
+                        "I recommend you to play {link} with the following mods: {mods}"
+                    ),
+                    not_found: r!("Could not find any map to recommend for you!"),
                 },
             },
             user: User {

@@ -30,7 +30,7 @@ pub async fn on_error(
             tracing::warn!("FrameworkCommand: {error}");
 
             let reply_error = |message: &str| {
-                let content = bold(cool_text(RikaMoji::X, message));
+                let content = cool_text(RikaMoji::X, message);
 
                 ctx.send(|r| r.content(content).ephemeral(true))
             };

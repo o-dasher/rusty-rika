@@ -1,11 +1,11 @@
 use std::collections::HashSet;
 
 use derive_more::From;
-use log::{info, warn};
+use log::info;
 use rosu_pp::{osu::OsuPerformanceAttributes, OsuPP};
 use rosu_v2::prelude::GameMode;
 
-use crate::{commands::CommandReturn, RikaData};
+use crate::{commands::CommandReturn, RikaContext, RikaData};
 
 #[derive(From)]
 pub enum SubmissionID {
@@ -13,15 +13,14 @@ pub enum SubmissionID {
     ByUsername(String),
 }
 
-pub async fn submit_scores(
-    RikaData {
+pub async fn submit_scores(ctx: RikaContext<'_>, osu_id: impl Into<SubmissionID>) -> CommandReturn {
+    let RikaData {
         db,
         rosu,
         beatmap_cache,
         ..
-    }: &RikaData,
-    osu_id: impl Into<SubmissionID>,
-) -> CommandReturn {
+    } = ctx.data();
+
     let mode = GameMode::Osu;
     let mode_bits = mode as i16;
 
@@ -54,7 +53,6 @@ pub async fn submit_scores(
         };
 
         if existing_scores.contains(&(score.map_id)) {
-            warn!("MEH");
             continue;
         }
 

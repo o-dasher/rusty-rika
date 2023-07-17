@@ -1,4 +1,5 @@
 use anyhow::anyhow;
+use lexicon::t;
 use num_traits::Float;
 use roricon::RoriconTrait;
 use rosu_v2::prelude::GameMods;
@@ -6,13 +7,14 @@ use tuple_map::TupleMap4;
 
 use crate::{
     commands::{osu::RikaOsuContext, CommandReturn},
+    utils::{emojis::RikaMoji, replies::cool_text, markdown::mono},
     RikaContext, RikaData,
 };
 
 #[poise::command(slash_command)]
 pub async fn recommend(ctx: RikaContext<'_>) -> CommandReturn {
-    let _i18n = ctx.i18n();
-    let RikaData {  db, .. } = ctx.data();
+    let i18n = ctx.i18n();
+    let RikaData { db, .. } = ctx.data();
 
     let (.., osu_id) = ctx.linked_osu_user().await?;
 
@@ -80,14 +82,15 @@ pub async fn recommend(ctx: RikaContext<'_>) -> CommandReturn {
     )
     .fetch_one(db)
     .await
-    .map_err(|_| anyhow!("Iai parsa nao achei mapa pra ce nao"))?;
+    .map_err(|_| anyhow!(t!(i18n.osu.recommend.not_found).clone()))?;
 
-    ctx.say(format!(
-        "SEGUINTE PARSA TE RECOMENDO JOGAR ISSO AQUI COM OS MOD {} TLG https://osu.ppy.sh/b/{}",
-        GameMods::try_from(possible_recommendation.mods as u32)?,
-        possible_recommendation.map_id
-    ))
-    .await?;
+    let beatmap_link = format!("https://osu.ppy.sh/b/{}", possible_recommendation.map_id);
+    let displayable_mods = GameMods::try_from(possible_recommendation.mods)?;
+
+    let content =
+        t!(i18n.osu.recommend.recommendation).r((beatmap_link, mono(displayable_mods.to_string())));
+
+    ctx.say(cool_text(RikaMoji::Ok, &content)).await?;
 
     Ok(())
 }
