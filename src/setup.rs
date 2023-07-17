@@ -59,7 +59,7 @@ pub async fn setup(
     tokio::spawn(async move {
         let RikaData { rosu, db, .. } = cloned_data.as_ref();
 
-        for page in 1..10 {
+        for page in 50..60 {
             let rank = rosu
                 .performance_rankings(GameMode::Osu)
                 .country("BR")

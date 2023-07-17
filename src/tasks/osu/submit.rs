@@ -1,6 +1,7 @@
 use std::{collections::HashSet, sync::Arc};
 
 use derive_more::From;
+use itertools::Itertools;
 use log::info;
 use rosu_pp::{osu::OsuPerformanceAttributes, OsuPP};
 use rosu_v2::prelude::GameMode;
@@ -33,7 +34,7 @@ pub async fn submit_scores(data: &Arc<RikaData>, osu_id: impl Into<SubmissionID>
 
     let rika_osu_scores = sqlx::query!(
         "
-        SELECT s.map_id FROM osu_score s
+        SELECT s.id FROM osu_score s
         JOIN osu_performance pp ON s.id = pp.id
         WHERE s.osu_user_id = ? AND s.mode = ?
         ",
@@ -43,19 +44,25 @@ pub async fn submit_scores(data: &Arc<RikaData>, osu_id: impl Into<SubmissionID>
     .fetch_all(db)
     .await?;
 
-    let existing_scores: HashSet<_> = rika_osu_scores.into_iter().map(|s| s.map_id).collect();
+    let existing_scores: HashSet<_> = rika_osu_scores.into_iter().map(|s| s.id).collect();
+    let new_scores = osu_scores
+        .iter()
+        .filter_map(|s| {
+            s.score_id.and_then(|score_id| {
+                let is_new = !existing_scores.contains(&score_id);
+
+                is_new.then(|| (score_id, s))
+            })
+        })
+        .collect_vec();
+
+    if new_scores.is_empty() {
+        return Ok(());
+    }
 
     let mut tx = db.begin().await?;
 
-    for (i, score) in osu_scores.iter().enumerate() {
-        let Some(score_id) = score.score_id else {
-            continue;
-        };
-
-        if existing_scores.contains(&(score.map_id)) {
-            continue;
-        }
-
+    for (i, (score_id, score)) in new_scores.iter().enumerate() {
         let beatmap_file = beatmap_cache.get_beatmap_file(score.map_id).await?;
         let beatmap_rosu = rosu_pp::Beatmap::from_bytes(&beatmap_file).await?;
 

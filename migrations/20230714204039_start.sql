@@ -3,7 +3,7 @@ CREATE TABLE rika_user (
     id SERIAL PRIMARY KEY NOT NULL,
 
     discord_id VARCHAR(255) UNIQUE,
-    osu_id INT UNSIGNED UNIQUE
+    osu_id INT UNSIGNED
 );
 
 CREATE TABLE osu_user (
