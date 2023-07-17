@@ -4,7 +4,7 @@ use lexicon::Localizer;
 use log::{error, info, warn};
 use poise::{
     serenity_prelude::{self, GuildId},
-    Framework 
+    Framework,
 };
 use rosu_v2::prelude::GameMode;
 use sqlx::pool::PoolOptions;

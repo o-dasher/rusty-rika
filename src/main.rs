@@ -1,10 +1,10 @@
 pub mod commands;
 pub mod error;
 pub mod models;
+pub mod setup;
 pub mod tasks;
 pub mod translations;
 pub mod utils;
-pub mod setup;
 
 use std::sync::Arc;
 
@@ -12,19 +12,14 @@ use commands::{math::math, osu::osu, owner::owner, rate::rate, user::user};
 use dotenvy::dotenv;
 use error::RikaError;
 use lexicon::Localizer;
-use log::{error};
+use log::error;
 
-use poise::{
-    futures_util::TryFutureExt,
-    serenity_prelude::{GatewayIntents},
-    FrameworkOptions,
-};
+use poise::{futures_util::TryFutureExt, serenity_prelude::GatewayIntents, FrameworkOptions};
 use roricon::{apply_translations, RoriconMetaTrait};
 
 use serde::Deserialize;
 use setup::setup;
-use sqlx::{MySqlPool};
-
+use sqlx::MySqlPool;
 
 use translations::{pt_br::locale_pt_br, rika_localizer::RikaLocalizer, RikaLocale};
 use utils::osu::BeatmapCache;
@@ -75,9 +70,7 @@ async fn main() {
         .token(&config.bot_token)
         .intents(GatewayIntents::non_privileged())
         .setup(move |ctx, _ready, framework| {
-            Box::pin(async move {
-                setup(ctx, framework, locales, config).await
-            })
+            Box::pin(async move { setup(ctx, framework, locales, config).await })
         })
         .run()
         .await
