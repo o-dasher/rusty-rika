@@ -9,7 +9,7 @@ use rosu_v2::prelude::GameMode;
 use sqlx::Result;
 use submit::submit;
 
-use crate::{commands::CommandReturn, RikaContext, RikaData};
+use crate::{commands::CommandReturn, RikaContext, RikaData, error};
 
 #[command(slash_command, subcommands("link", "submit", "recommend"))]
 pub async fn osu(_ctx: RikaContext<'_>) -> CommandReturn {
@@ -36,6 +36,9 @@ impl From<OsuMode> for GameMode {
 pub enum RikaOsuError {
     #[error("You must link your account to use this command")]
     NotLinked,
+
+    #[error("You must submit some scores before using this command `/osu submit`")]
+    RequiresSubmission 
 }
 
 #[async_trait]

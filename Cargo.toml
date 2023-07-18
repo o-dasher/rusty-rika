@@ -17,7 +17,6 @@ envy = "0.4.2"
 log = "0.4.19"
 poise = "0.5.5"
 serde = { version = "1.0.167", features = ["derive"] }
-structstruck = "0.4.1"
 strum = { version = "0.25.0", features = ["derive", "strum_macros"] }
 tokio = { version = "1.29.1", features = ["full"] }
 nestruct = "0.1.0"

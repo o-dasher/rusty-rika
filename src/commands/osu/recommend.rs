@@ -7,9 +7,12 @@ use tuple_map::TupleMap4;
 
 use crate::{
     commands::{osu::RikaOsuContext, CommandReturn},
+    models::osu_score::OsuPerformance,
     utils::{emojis::RikaMoji, markdown::mono, replies::cool_text},
     RikaContext, RikaData,
 };
+
+use super::RikaOsuError;
 
 #[poise::command(slash_command)]
 pub async fn recommend(ctx: RikaContext<'_>) -> CommandReturn {
@@ -18,36 +21,52 @@ pub async fn recommend(ctx: RikaContext<'_>) -> CommandReturn {
 
     let (.., osu_id) = ctx.linked_osu_user().await?;
 
-    let user_average = sqlx::query!(
+    let performance_values = sqlx::query_as!(
+        OsuPerformance,
         "
-        SELECT
-        AVG(pp.speed) as speed,
-        AVG(pp.accuracy) as accuracy,
-        AVG(pp.aim) as aim,
-        AVG(pp.flashlight) as flashlight
+        SELECT pp.*
         FROM osu_score s
         JOIN osu_performance pp ON s.id = pp.id
         WHERE osu_user_id = ?
         ",
         osu_id
     )
-    .fetch_one(db)
+    .fetch_all(db)
     .await?;
 
-    let (
-        (min_speed, max_speed),
-        (min_acc, max_acc),
-        (min_aim, max_aim),
-        (min_flashlight, max_flashlight),
-    ) = (
-        user_average.speed,
-        user_average.accuracy,
-        user_average.aim,
-        user_average.flashlight,
-    )
-        .map(|x| {
-            let x = x.unwrap_or_default();
+    if performance_values.is_empty() {
+        return Err(RikaOsuError::RequiresSubmission.into());
+    }
 
+    let weight_to = |f: fn(&OsuPerformance) -> f32| {
+        let (pp_sum, weight) = performance_values
+            .iter()
+            .map(f)
+            .enumerate()
+            .map(|(i, value)| (value, 0.95f32.powi(i as i32)))
+            .map(|(value, weight_by)| (value * weight_by, weight_by))
+            .fold((0f32, 0f32), |(pp_sum, weight), (value, weight_by)| {
+                (pp_sum + value, weight + weight_by)
+            });
+
+        println!("{}", pp_sum / weight);
+
+        pp_sum / weight
+    };
+
+    macro_rules! apply_weight {
+        ($name:ident, $field:ident) => {
+            let $name = weight_to(|v| v.$field);
+        };
+    }
+
+    apply_weight!(avg_speed, speed);
+    apply_weight!(avg_acc, accuracy);
+    apply_weight!(avg_aim, aim);
+    apply_weight!(avg_fl, flashlight);
+
+    let ((min_speed, max_speed), (min_acc, max_acc), (min_aim, max_aim), (min_fl, max_fl)) =
+        (avg_speed, avg_acc, avg_aim, avg_fl).map(|x| {
             fn mid_interval<F: Float>(x: F, delta: F) -> (F, F) {
                 let d = delta / F::from(2).unwrap();
                 (x * (F::one() - d), x * (F::one() + d))
@@ -76,8 +95,8 @@ pub async fn recommend(ctx: RikaContext<'_>) -> CommandReturn {
         max_acc,
         min_aim,
         max_aim,
-        min_flashlight,
-        max_flashlight
+        min_fl,
+        max_fl
     )
     .fetch_one(db)
     .await
