@@ -83,6 +83,7 @@ pub async fn submit_scores(data: &Arc<RikaData>, osu_id: impl Into<SubmissionID>
     let mut tx = db.begin().await?;
 
     // Can't we do all this in a single query at this point? i think so? i am not sure.
+    // I mean, anyways this takes at most 30ms the chances of any deadlocks here are minimal.
     for (
         OsuPerformanceAttributes {
             pp,
@@ -125,21 +126,22 @@ pub async fn submit_scores(data: &Arc<RikaData>, osu_id: impl Into<SubmissionID>
         .await?;
     }
 
-    // LIMIT TO TOP 100 ONLY,
-    // WE ARE DELETING PREVIOUS SUBMISSIONS HERE
     sqlx::query!(
         "
-        DELETE FROM osu_score 
+        DELETE FROM osu_score
         WHERE id NOT IN (
-            SELECT s.id
+            SELECT top_100.id
             FROM (
                 SELECT id
                 FROM osu_score
+                WHERE osu_user_id = ?
                 ORDER BY created_at DESC
                 LIMIT 100
-            ) as s
-        )
-        "
+            ) as top_100
+        ) AND osu_user_id = ?
+        ",
+        &osu_id,
+        &osu_id
     )
     .execute(&mut *tx)
     .await?;
