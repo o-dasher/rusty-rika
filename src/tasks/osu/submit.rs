@@ -114,6 +114,25 @@ pub async fn submit_scores(data: &Arc<RikaData>, osu_id: impl Into<SubmissionID>
         info!("Processed score number {} for {osu_id}", i + 1);
     }
 
+    // LIMIT TO TOP 100 ONLY,
+    // WE ARE DELETING PREVIOUS SUBMISSIONS HERE
+    sqlx::query!(
+        "
+        DELETE FROM osu_score 
+        WHERE id NOT IN (
+            SELECT s.id
+            FROM (
+                SELECT id
+                FROM osu_score
+                ORDER BY created_at DESC
+                LIMIT 100
+            ) as s
+        )
+        "
+    )
+    .execute(&mut *tx)
+    .await?;
+
     tx.commit().await?;
 
     Ok(())
