@@ -31,6 +31,7 @@ pub struct RikaConfig {
     osu_client_id: u64,
     osu_client_secret: String,
     database_url: String,
+    scraped_country: String
 }
 
 pub struct RikaData {

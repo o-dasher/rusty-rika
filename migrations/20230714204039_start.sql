@@ -17,9 +17,10 @@ CREATE TABLE osu_score (
     mods INT UNSIGNED NOT NULL,
     map_id INT UNSIGNED NOT NULL,
 
+    created_at TIMESTAMP DEFAULT NOW(),
     mode SMALLINT NOT NULL,
     
-    FOREIGN KEY (osu_user_id) REFERENCES osu_user (id)
+    FOREIGN KEY (osu_user_id) REFERENCES osu_user (id) ON DELETE CASCADE
 );
 
 
@@ -32,5 +33,5 @@ CREATE TABLE osu_performance (
     flashlight FLOAT NOT NULL,
     overall FLOAT NOT NULL,
 
-    FOREIGN KEY (id) REFERENCES osu_score (id)
+    FOREIGN KEY (id) REFERENCES osu_score (id) ON DELETE CASCADE
 );

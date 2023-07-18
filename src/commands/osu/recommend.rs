@@ -61,13 +61,12 @@ pub async fn recommend(ctx: RikaContext<'_>) -> CommandReturn {
         SELECT s.*
         FROM osu_score s
         JOIN osu_performance pp ON s.id = pp.id
-        GROUP BY s.id
-        HAVING
+        WHERE 
             s.osu_user_id != ? AND
-            AVG(pp.speed) BETWEEN ? AND ? AND
-            AVG(pp.accuracy) BETWEEN ? AND ? AND
-            AVG(pp.aim) BETWEEN ? AND ? AND
-            AVG(pp.flashlight) BETWEEN ? AND ?
+            pp.speed BETWEEN ? AND ? AND
+            pp.accuracy BETWEEN ? AND ? AND
+            pp.aim BETWEEN ? AND ? AND
+            pp.flashlight BETWEEN ? AND ?
         ORDER BY RAND()
         ",
         osu_id,

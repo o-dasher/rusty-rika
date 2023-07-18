@@ -50,12 +50,14 @@ pub async fn setup(
     let cloned_data = rika_data.clone();
 
     tokio::spawn(async move {
-        let RikaData { rosu, db, .. } = cloned_data.as_ref();
+        let RikaData {
+            rosu, db, config, ..
+        } = cloned_data.as_ref();
 
         for page in 1..100 {
             let rank = rosu
                 .performance_rankings(GameMode::Osu)
-                .country("BR")
+                    .country(config.scraped_country.clone())
                 .page(page)
                 .await;
 
