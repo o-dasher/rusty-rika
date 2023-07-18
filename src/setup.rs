@@ -10,7 +10,6 @@ use rosu_v2::prelude::GameMode;
 use sqlx::pool::PoolOptions;
 
 use crate::{
-    commands::owner::owner,
     error::RikaError,
     models::osu_user::OsuUser,
     tasks::osu::submit::submit_scores,
@@ -59,43 +58,45 @@ pub async fn setup(
 
     let cloned_data = rika_data.clone();
 
-    tokio::spawn(async move {
-        let RikaData {
-            rosu, db, config, ..
-        } = cloned_data.as_ref();
-
-        for page in 1..100 {
-            let rank = rosu
-                .performance_rankings(GameMode::Osu)
-                .country(config.scraped_country.clone())
-                .page(page)
-                .await;
-
-            let Ok(rank) = rank else {
-                warn!("Stopped processing ranks!");
-                break;
-            };
-
-            for (i, u) in rank.ranking.iter().enumerate() {
-                let id = u.user_id;
-                let rosu_user = rosu.user(id).await;
-
-                if let Err(..) = rosu_user {
-                    break;
-                }
-
-                let created_user = OsuUser::try_create(&id).execute(db).await;
-                let number_at = 50 * (page as usize - 1) + (i + 1);
-
-                if let Ok(..) = created_user {
-                    match submit_scores(&cloned_data, id).await {
-                        Ok(..) => info!("Submitted scores for top user: {id} at {number_at}"),
-                        Err(e) => error!("{e:?}"),
-                    };
-                }
-            }
-        }
-    });
+    tokio::spawn(background_setup(cloned_data));
 
     Ok(rika_data)
+}
+
+async fn background_setup(data: Arc<RikaData>) {
+    let RikaData {
+        rosu, db, config, ..
+    } = data.as_ref();
+
+    for page in 1..100 {
+        let rank = rosu
+            .performance_rankings(GameMode::Osu)
+            .country(config.scraped_country.clone())
+            .page(page)
+            .await;
+
+        let Ok(rank) = rank else {
+            warn!("Stopped processing ranks!");
+            break;
+        };
+
+        for (i, u) in rank.ranking.iter().enumerate() {
+            let id = u.user_id;
+            let rosu_user = rosu.user(id).await;
+
+            if let Err(..) = rosu_user {
+                break;
+            }
+
+            let created_user = OsuUser::try_create(&id).execute(db).await;
+            let number_at = 50 * (page as usize - 1) + (i + 1);
+
+            if let Ok(..) = created_user {
+                match submit_scores(&data, id).await {
+                    Ok(..) => info!("Submitted scores for top user: {id} at {number_at}"),
+                    Err(e) => error!("{e:?}"),
+                };
+            }
+        }
+    }
 }
