@@ -4,7 +4,7 @@ use derive_more::From;
 use itertools::Itertools;
 use log::info;
 use rosu_pp::{osu::OsuPerformanceAttributes, OsuPP};
-use rosu_v2::prelude::GameMode;
+use rosu_v2::prelude::{GameMode, Score};
 
 use crate::{commands::CommandReturn, RikaData};
 
@@ -60,20 +60,13 @@ pub async fn submit_scores(data: &Arc<RikaData>, osu_id: impl Into<SubmissionID>
         return Ok(());
     }
 
-    let mut tx = db.begin().await?;
+    let mut performance_information: Vec<(OsuPerformanceAttributes, (&Score, &u64))> = vec![];
 
     for (i, (score_id, score)) in new_scores.iter().enumerate() {
         let beatmap_file = beatmap_cache.get_beatmap_file(score.map_id).await?;
         let beatmap_rosu = rosu_pp::Beatmap::from_bytes(&beatmap_file).await?;
 
-        let OsuPerformanceAttributes {
-            pp_aim,
-            pp_speed,
-            pp_flashlight,
-            pp_acc,
-            pp,
-            ..
-        } = OsuPP::new(&beatmap_rosu)
+        let performance_attributes = OsuPP::new(&beatmap_rosu)
             .mods(score.mods.into())
             .combo(score.max_combo as usize)
             .n_misses(score.statistics.count_miss as usize)
@@ -82,6 +75,26 @@ pub async fn submit_scores(data: &Arc<RikaData>, osu_id: impl Into<SubmissionID>
             .n50(score.statistics.count_50 as usize)
             .calculate();
 
+        performance_information.push((performance_attributes, (*score, score_id)));
+
+        info!("Processed score number {} for {osu_id}", i + 1);
+    }
+
+    let mut tx = db.begin().await?;
+
+    // Can't we do all this in a single query at this point? i think so? i am not sure.
+    for (
+        OsuPerformanceAttributes {
+            pp,
+            pp_acc,
+            pp_aim,
+            pp_flashlight,
+            pp_speed,
+            ..
+        },
+        (score, score_id),
+    ) in performance_information
+    {
         sqlx::query!(
             "
             INSERT INTO osu_score (id, osu_user_id, map_id, mods, mode)
@@ -110,8 +123,6 @@ pub async fn submit_scores(data: &Arc<RikaData>, osu_id: impl Into<SubmissionID>
         )
         .execute(&mut *tx)
         .await?;
-
-        info!("Processed score number {} for {osu_id}", i + 1);
     }
 
     // LIMIT TO TOP 100 ONLY,
