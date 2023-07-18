@@ -27,11 +27,11 @@ use utils::osu::BeatmapCache;
 #[derive(Deserialize)]
 pub struct RikaConfig {
     bot_token: String,
-    development_guild: u64,
+    development_guild: Option<u64>,
     osu_client_id: u64,
     osu_client_secret: String,
     database_url: String,
-    scraped_country: String
+    scraped_country: String,
 }
 
 pub struct RikaData {
@@ -70,8 +70,8 @@ async fn main() {
         })
         .token(&config.bot_token)
         .intents(GatewayIntents::non_privileged())
-        .setup(move |ctx, _ready, _framework| {
-            Box::pin(async move { setup(ctx, locales, config).await })
+        .setup(move |ctx, _ready, framework| {
+            Box::pin(async move { setup(ctx, framework, locales, config).await })
         })
         .run()
         .await

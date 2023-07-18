@@ -2,7 +2,10 @@ use std::sync::Arc;
 
 use lexicon::Localizer;
 use log::{error, info, warn};
-use poise::serenity_prelude::{self, GuildId};
+use poise::{
+    serenity_prelude::{self, GuildId},
+    Framework,
+};
 use rosu_v2::prelude::GameMode;
 use sqlx::pool::PoolOptions;
 
@@ -18,11 +21,18 @@ use crate::{
 
 pub async fn setup(
     ctx: &serenity_prelude::Context,
+    framework: &Framework<Arc<RikaData>, RikaError>,
     locales: Localizer<RikaLocale, RikaLocalizer>,
     config: RikaConfig,
 ) -> Result<Arc<RikaData>, RikaError> {
-    poise::builtins::register_in_guild(ctx, &vec![owner()], GuildId(config.development_guild))
-        .await?;
+    let to_register = &framework.options().commands;
+
+    match config.development_guild {
+        Some(dev_guild) => {
+            poise::builtins::register_in_guild(ctx, to_register, GuildId(dev_guild)).await?;
+        }
+        None => poise::builtins::register_globally(ctx, to_register).await?,
+    }
 
     let rosu = rosu_v2::Osu::builder()
         .client_id(config.osu_client_id)
@@ -57,7 +67,7 @@ pub async fn setup(
         for page in 1..100 {
             let rank = rosu
                 .performance_rankings(GameMode::Osu)
-                    .country(config.scraped_country.clone())
+                .country(config.scraped_country.clone())
                 .page(page)
                 .await;
 
