@@ -70,7 +70,7 @@ async fn background_setup(data: Arc<RikaData>) {
 
     let mut scraped_modes = [GameMode::Osu, GameMode::Taiko].iter().cycle();
 
-    for page in 50..100 {
+    for page in 1..100 {
         let Some(mode) = scraped_modes.next() else {
             break;
         };
