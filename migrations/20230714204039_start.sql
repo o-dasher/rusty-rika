@@ -17,7 +17,7 @@ CREATE TABLE osu_score (
     mods INT UNSIGNED NOT NULL,
     map_id INT UNSIGNED NOT NULL,
 
-    created_at TIMESTAMP DEFAULT NOW(),
+    created_at TIMESTAMP DEFAULT NOW() NOT NULL,
     mode SMALLINT NOT NULL,
     
     FOREIGN KEY (osu_user_id) REFERENCES osu_user (id) ON DELETE CASCADE
@@ -31,6 +31,16 @@ CREATE TABLE osu_performance (
     speed FLOAT NOT NULL,
     accuracy FLOAT NOT NULL,
     flashlight FLOAT NOT NULL,
+    overall FLOAT NOT NULL,
+
+    FOREIGN KEY (id) REFERENCES osu_score (id) ON DELETE CASCADE
+);
+
+CREATE TABLE taiko_performance (
+    id BIGINT UNSIGNED PRIMARY KEY NOT NULL,
+
+    accuracy FLOAT NOT NULL,
+    difficulty FLOAT NOT NULL,
     overall FLOAT NOT NULL,
 
     FOREIGN KEY (id) REFERENCES osu_score (id) ON DELETE CASCADE

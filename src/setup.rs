@@ -68,9 +68,15 @@ async fn background_setup(data: Arc<RikaData>) {
         rosu, db, config, ..
     } = data.as_ref();
 
-    for page in 1..100 {
+    let mut scraped_modes = [GameMode::Osu, GameMode::Taiko].iter().cycle();
+
+    for page in 50..100 {
+        let Some(mode) = scraped_modes.next() else {
+            break;
+        };
+
         let rank = rosu
-            .performance_rankings(GameMode::Osu)
+            .performance_rankings(*mode)
             .country(config.scraped_country.clone())
             .page(page)
             .await;
@@ -92,7 +98,7 @@ async fn background_setup(data: Arc<RikaData>) {
             let number_at = 50 * (page as usize - 1) + (i + 1);
 
             if let Ok(..) = created_user {
-                match submit_scores(&data, id).await {
+                match submit_scores(&data, id, GameMode::Osu).await {
                     Ok(..) => info!("Submitted scores for top user: {id} at {number_at}"),
                     Err(e) => error!("{e:?}"),
                 };

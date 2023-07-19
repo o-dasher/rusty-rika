@@ -9,7 +9,7 @@ use rosu_v2::prelude::GameMode;
 use sqlx::Result;
 use submit::submit;
 
-use crate::{commands::CommandReturn, RikaContext, RikaData, error};
+use crate::{commands::CommandReturn, error, RikaContext, RikaData};
 
 #[command(slash_command, subcommands("link", "submit", "recommend"))]
 pub async fn osu(_ctx: RikaContext<'_>) -> CommandReturn {
@@ -34,11 +34,14 @@ impl From<OsuMode> for GameMode {
 
 #[derive(thiserror::Error, Debug)]
 pub enum RikaOsuError {
-    #[error("You must link your account to use this command")]
+    #[error("You must link your account to use this command.")]
     NotLinked,
 
-    #[error("You must submit some scores before using this command `/osu submit`")]
-    RequiresSubmission 
+    #[error("You must submit some scores before using this command. Try `/osu submit`")]
+    RequiresSubmission,
+
+    #[error("This command does not support this mode.")]
+    UnsupportedMode
 }
 
 #[async_trait]
@@ -49,7 +52,7 @@ pub trait RikaOsuContext {
 #[async_trait]
 impl RikaOsuContext for RikaContext<'_> {
     async fn linked_osu_user(&self) -> Result<((), u32), RikaOsuError> {
-        let RikaData { db, .. } = self.data().as_ref(); 
+        let RikaData { db, .. } = self.data().as_ref();
 
         let user = sqlx::query!(
             "SELECT * FROM rika_user WHERE discord_id=?",

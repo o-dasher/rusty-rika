@@ -3,7 +3,8 @@ use std::{collections::HashSet, sync::Arc};
 use derive_more::From;
 use itertools::Itertools;
 use log::info;
-use rosu_pp::{osu::OsuPerformanceAttributes, OsuPP};
+use paste::paste;
+use rosu_pp::{osu::OsuPerformanceAttributes, taiko::TaikoPerformanceAttributes, OsuPP, TaikoPP};
 use rosu_v2::prelude::{GameMode, Score};
 
 use crate::{commands::CommandReturn, RikaData};
@@ -14,7 +15,11 @@ pub enum SubmissionID {
     ByUsername(String),
 }
 
-pub async fn submit_scores(data: &Arc<RikaData>, osu_id: impl Into<SubmissionID>) -> CommandReturn {
+pub async fn submit_scores(
+    data: &Arc<RikaData>,
+    osu_id: impl Into<SubmissionID>,
+    mode: GameMode,
+) -> CommandReturn {
     let RikaData {
         db,
         rosu,
@@ -22,7 +27,6 @@ pub async fn submit_scores(data: &Arc<RikaData>, osu_id: impl Into<SubmissionID>
         ..
     } = data.as_ref();
 
-    let mode = GameMode::Osu;
     let mode_bits = mode as i16;
 
     let osu_id = match osu_id.into() {
@@ -60,42 +64,53 @@ pub async fn submit_scores(data: &Arc<RikaData>, osu_id: impl Into<SubmissionID>
         return Ok(());
     }
 
-    let mut performance_information: Vec<(OsuPerformanceAttributes, (&Score, &u64))> = vec![];
+    #[derive(From)]
+    enum BonkersferformanceAttributes {
+        Osu(OsuPerformanceAttributes),
+        Taiko(TaikoPerformanceAttributes),
+    }
+
+    let mut performance_information: Vec<(BonkersferformanceAttributes, (&Score, &u64))> = vec![];
 
     for (i, (score_id, score)) in new_scores.iter().enumerate() {
         let beatmap_file = beatmap_cache.get_beatmap_file(score.map_id).await?;
         let beatmap_rosu = rosu_pp::Beatmap::from_bytes(&beatmap_file).await?;
 
-        let performance_attributes = OsuPP::new(&beatmap_rosu)
-            .mods(score.mods.into())
-            .combo(score.max_combo as usize)
-            .n_misses(score.statistics.count_miss as usize)
-            .n300(score.statistics.count_300 as usize)
-            .n100(score.statistics.count_100 as usize)
-            .n50(score.statistics.count_50 as usize)
-            .calculate();
+        macro_rules! calc {
+            ($mode:ident) => {
+                paste! {
+                    [<$mode PP>]::new(&beatmap_rosu)
+                        .mods(score.mods.into())
+                        .combo(score.max_combo as usize)
+                        .n300(score.statistics.count_300 as usize)
+                        .n100(score.statistics.count_100 as usize)
+                        .n_misses(score.statistics.count_miss as usize)
+                }
+            };
+        }
 
-        performance_information.push((performance_attributes, (*score, score_id)));
+        let performance_attributes = match mode {
+            GameMode::Osu => Some(
+                calc!(Osu)
+                    .n50(score.statistics.count_50 as usize)
+                    .calculate()
+                    .into(),
+            ),
+            GameMode::Taiko => Some(calc!(Taiko).calculate().into()),
+            _ => None,
+        };
 
-        info!("Processed score number {} for {osu_id}", i + 1);
+        if let Some(performance_attributes) = performance_attributes {
+            performance_information.push((performance_attributes, (*score, score_id)));
+            info!("Processed score number {} for {osu_id}", i + 1);
+        }
     }
 
     let mut tx = db.begin().await?;
 
     // Can't we do all this in a single query at this point? i think so? i am not sure.
     // I mean, anyways this takes at most 30ms the chances of any deadlocks here are minimal.
-    for (
-        OsuPerformanceAttributes {
-            pp,
-            pp_acc,
-            pp_aim,
-            pp_flashlight,
-            pp_speed,
-            ..
-        },
-        (score, score_id),
-    ) in performance_information
-    {
+    for (bonkers_performance, (score, score_id)) in performance_information {
         sqlx::query!(
             "
             INSERT INTO osu_score (id, osu_user_id, map_id, mods, mode)
@@ -110,18 +125,44 @@ pub async fn submit_scores(data: &Arc<RikaData>, osu_id: impl Into<SubmissionID>
         .execute(&mut *tx)
         .await?;
 
-        sqlx::query!(
-            "
-            INSERT INTO osu_performance (id, aim, speed, flashlight, accuracy, overall)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ",
-            score_id,
-            pp_aim,
-            pp_speed,
-            pp_flashlight,
-            pp_acc,
-            pp
-        )
+        match bonkers_performance {
+            BonkersferformanceAttributes::Osu(OsuPerformanceAttributes {
+                pp,
+                pp_acc,
+                pp_aim,
+                pp_flashlight,
+                pp_speed,
+                ..
+            }) => {
+                sqlx::query!(
+                    "
+                    INSERT INTO osu_performance (id, aim, speed, flashlight, accuracy, overall)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    ",
+                    score_id,
+                    pp_aim,
+                    pp_speed,
+                    pp_flashlight,
+                    pp_acc,
+                    pp
+                )
+            }
+            BonkersferformanceAttributes::Taiko(TaikoPerformanceAttributes {
+                pp,
+                pp_acc,
+                pp_difficulty,
+                ..
+            }) => sqlx::query!(
+                "
+                INSERT INTO taiko_performance (id, accuracy, difficulty, overall)
+                VALUES (?, ?, ?, ?)
+                ",
+                score_id,
+                pp_acc,
+                pp_difficulty,
+                pp
+            ),
+        }
         .execute(&mut *tx)
         .await?;
     }
@@ -134,14 +175,16 @@ pub async fn submit_scores(data: &Arc<RikaData>, osu_id: impl Into<SubmissionID>
             FROM (
                 SELECT id
                 FROM osu_score
-                WHERE osu_user_id = ?
+                WHERE osu_user_id = ? AND mode = ?
                 ORDER BY created_at DESC
                 LIMIT 100
             ) as top_100
-        ) AND osu_user_id = ?
+        ) AND osu_user_id = ? AND mode = ?
         ",
         &osu_id,
-        &osu_id
+        &osu_id,
+        &mode_bits,
+        &mode_bits
     )
     .execute(&mut *tx)
     .await?;
