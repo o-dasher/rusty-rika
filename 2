@@ -8,6 +8,7 @@ use poise::{
 };
 use rosu_v2::prelude::GameMode;
 use sqlx::pool::PoolOptions;
+use tokio::sync::mpsc;
 
 use crate::{
     error::RikaError,
@@ -69,16 +70,19 @@ async fn background_setup(data: Arc<RikaData>) {
     } = data.as_ref();
 
     let mut scraped_modes = [GameMode::Osu, GameMode::Taiko, GameMode::Mania]
-        .into_iter()
+        .iter()
         .cycle();
 
+        let cloned_data = data.clone();
+
     for page in (1..100).cycle() {
+
         let Some(mode) = scraped_modes.next() else {
             break;
         };
 
         let rank = rosu
-            .performance_rankings(mode)
+            .performance_rankings(*mode)
             .country(config.scraped_country.clone())
             .page(page)
             .await;
@@ -88,8 +92,6 @@ async fn background_setup(data: Arc<RikaData>) {
         };
 
         for (i, u) in rank.ranking.iter().enumerate() {
-            let data = data.clone();
-
             let id = u.user_id;
             let rosu_user = rosu.user(id).await;
 
@@ -101,7 +103,7 @@ async fn background_setup(data: Arc<RikaData>) {
             let number_at = 50 * (page as usize - 1) + (i + 1);
 
             if let Ok(..) = created_user {
-                match submit_scores(data, id, mode, None).await {
+                match submit_scores(cloned_data, id, GameMode::Osu, mpsc::channel(100).0).await {
                     Ok(..) => info!("Submitted scores for top user: {id} at {number_at}"),
                     Err(e) => error!("{e:?}"),
                 };

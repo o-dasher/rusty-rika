@@ -1,6 +1,7 @@
 use lexicon::t;
 use roricon::RoriconTrait;
 use rosu_v2::prelude::GameMode;
+use tokio::sync::mpsc;
 
 use crate::{
     commands::{
@@ -18,12 +19,36 @@ pub async fn submit(ctx: RikaContext<'_>, mode: OsuMode) -> CommandReturn {
     let i18n = ctx.i18n();
     let (.., osu_id) = ctx.linked_osu_user().await?;
 
-    ctx.defer().await?;
-
-    submit_scores(ctx.data(), osu_id, GameMode::from(mode)).await?;
-
-    ctx.say(cool_text(RikaMoji::Ok, &t!(i18n.osu.submit.submitted)))
+    let msg = ctx
+        .say(cool_text(
+            RikaMoji::ChocolateBar,
+            &t!(i18n.osu.submit.too_long_warning),
+        ))
         .await?;
+
+    let (sender, mut receiver) = mpsc::channel(100);
+
+    tokio::spawn(submit_scores(
+        ctx.data().clone(),
+        osu_id,
+        GameMode::from(mode),
+        sender.into(),
+    ));
+
+    while let Some((amount, out_of)) = receiver.recv().await {
+        msg.edit(ctx, |b| {
+            b.content(cool_text(
+                RikaMoji::ChocolateBar,
+                &t!(i18n.osu.submit.progress_shower).r((amount, out_of)),
+            ))
+        })
+        .await?
+    }
+
+    msg.edit(ctx, |r| {
+        r.content(cool_text(RikaMoji::Ok, &t!(i18n.osu.submit.submitted)))
+    })
+    .await?;
 
     Ok(())
 }

@@ -9,6 +9,7 @@ use rosu_pp::{
     taiko::TaikoPerformanceAttributes, ManiaPP, OsuPP, TaikoPP,
 };
 use rosu_v2::prelude::{GameMode, Score};
+use tokio::sync::mpsc::Sender;
 
 use crate::{commands::CommandReturn, RikaData};
 
@@ -19,9 +20,10 @@ pub enum SubmissionID {
 }
 
 pub async fn submit_scores(
-    data: &Arc<RikaData>,
+    data: Arc<RikaData>,
     osu_id: impl Into<SubmissionID>,
     mode: GameMode,
+    sender: Option<Sender<(usize, usize)>>,
 ) -> CommandReturn {
     let RikaData {
         db,
@@ -84,32 +86,33 @@ pub async fn submit_scores(
             ($mode:ident) => {
                 paste! {
                     [<$mode PP>]::new(&beatmap_rosu)
-                        .mods(score.mods.into())
-                        .n300(score.statistics.count_300 as usize)
-                        .n100(score.statistics.count_100 as usize)
-                        .n_misses(score.statistics.count_miss as usize)
                 }
+                .mods(score.mods.into())
+                .n300(calc!(+count_300))
+                .n100(calc!(+count_100))
+                .n_misses(calc!(+count_miss))
+            };
+            (-$dep:ident) => {
+                score.$dep as usize
+            };
+            (+$dep:ident) => {
+                score.statistics.$dep as usize
             };
         }
 
         let performance_attributes = match mode {
             GameMode::Osu => Some(
                 calc!(Osu)
-                    .n50(score.statistics.count_50 as usize)
-                    .combo(score.max_combo as usize)
+                    .n50(calc!(+count_50))
+                    .combo(calc!(-max_combo))
                     .calculate()
                     .into(),
             ),
-            GameMode::Taiko => Some(
-                calc!(Taiko)
-                    .combo(score.max_combo as usize)
-                    .calculate()
-                    .into(),
-            ),
+            GameMode::Taiko => Some(calc!(Taiko).combo(calc!(-max_combo)).calculate().into()),
             GameMode::Mania => Some(
                 calc!(Mania)
-                    .n320(score.statistics.count_geki as usize)
-                    .n200(score.statistics.count_katu as usize)
+                    .n320(calc!(+count_geki))
+                    .n200(calc!(+count_katu))
                     .calculate()
                     .into(),
             ),
@@ -118,7 +121,14 @@ pub async fn submit_scores(
 
         if let Some(performance_attributes) = performance_attributes {
             performance_information.push((performance_attributes, (*score, score_id)));
-            info!("Processed score number {} for {osu_id}", i + 1);
+
+            let display_index = i + 1;
+
+            if let Some(s) = &sender {
+                let _ = s.send((display_index, new_scores.len())).await;
+            }
+
+            info!("Processed score number {} for {osu_id}", display_index);
         }
     }
 

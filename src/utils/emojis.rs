@@ -6,9 +6,8 @@ use strum::IntoStaticStr;
 #[strum(serialize_all = "snake_case")]
 pub enum RikaMoji {
     Art,
-
+    ChocolateBar,
     X,
-
     #[strum(serialize = "ballot_box_with_check")]
     Ok,
 }

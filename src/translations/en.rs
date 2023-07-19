@@ -27,6 +27,8 @@ impl DefaultLocalizer for RikaLocalizer {
                 },
                 submit: Submit {
                     submitted: r!("Submitted scores successfullty!"),
+                    too_long_warning: r!("This might take a while"),
+                    progress_shower: r!(|(amount, out_of)| "Submitted {amount}/{out_of} scores."),
                 },
                 recommend: Recommend {
                     recommendation: r!(|(link, mods)| {

@@ -19,7 +19,9 @@ nestruct::nest! {
                 linked: lexicon::GR<String>?
             },
             submit: {
-                submitted: lexicon::R?
+                submitted: lexicon::R?,
+                too_long_warning: lexicon::R?,
+                progress_shower: lexicon::GR<(usize, usize)>?
             },
             recommend: {
                 recommendation: lexicon::GR<(String, String)>?,
