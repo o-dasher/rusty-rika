@@ -28,7 +28,7 @@ pub async fn submit(ctx: RikaContext<'_>, mode: OsuMode) -> CommandReturn {
 
     let (sender, mut receiver) = mpsc::channel(100);
 
-    tokio::spawn(submit_scores(
+    let submit_result = tokio::spawn(submit_scores(
         ctx.data().clone(),
         osu_id,
         GameMode::from(mode),
@@ -43,6 +43,11 @@ pub async fn submit(ctx: RikaContext<'_>, mode: OsuMode) -> CommandReturn {
             ))
         })
         .await?
+    }
+
+    if let Ok(result) = submit_result.await {
+        result?
+        
     }
 
     msg.edit(ctx, |r| {
