@@ -19,6 +19,9 @@ pub enum SubmissionID {
     ByUsername(String),
 }
 
+// The buffer for the receiver of the messages here will always remains to be 100
+// I clearly need to redesign how this is supposed to be actually done.
+
 pub async fn submit_scores(
     data: Arc<RikaData>,
     osu_id: impl Into<SubmissionID>,
