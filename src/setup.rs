@@ -68,7 +68,7 @@ async fn background_setup(data: Arc<RikaData>) {
         rosu, db, config, ..
     } = data.as_ref();
 
-    let mut scraped_modes = [GameMode::Osu, GameMode::Taiko].iter().cycle();
+    let mut scraped_modes = [GameMode::Osu, GameMode::Taiko, GameMode::Mania].iter().cycle();
 
     for page in (1..100).cycle() {
         let Some(mode) = scraped_modes.next() else {
