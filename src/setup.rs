@@ -70,7 +70,7 @@ async fn background_setup(data: Arc<RikaData>) {
 
     let mut scraped_modes = [GameMode::Osu, GameMode::Taiko].iter().cycle();
 
-    for page in 1..100 {
+    for page in (1..100).cycle() {
         let Some(mode) = scraped_modes.next() else {
             break;
         };
@@ -82,7 +82,6 @@ async fn background_setup(data: Arc<RikaData>) {
             .await;
 
         let Ok(rank) = rank else {
-            warn!("Stopped processing ranks!");
             break;
         };
 
