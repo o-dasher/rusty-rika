@@ -4,7 +4,10 @@ use derive_more::From;
 use itertools::Itertools;
 use log::info;
 use paste::paste;
-use rosu_pp::{osu::OsuPerformanceAttributes, taiko::TaikoPerformanceAttributes, OsuPP, TaikoPP};
+use rosu_pp::{
+    mania::ManiaPerformanceAttributes, osu::OsuPerformanceAttributes,
+    taiko::TaikoPerformanceAttributes, ManiaPP, OsuPP, TaikoPP,
+};
 use rosu_v2::prelude::{GameMode, Score};
 
 use crate::{commands::CommandReturn, RikaData};
@@ -68,6 +71,7 @@ pub async fn submit_scores(
     enum BonkersferformanceAttributes {
         Osu(OsuPerformanceAttributes),
         Taiko(TaikoPerformanceAttributes),
+        Mania(ManiaPerformanceAttributes),
     }
 
     let mut performance_information: Vec<(BonkersferformanceAttributes, (&Score, &u64))> = vec![];
@@ -81,7 +85,6 @@ pub async fn submit_scores(
                 paste! {
                     [<$mode PP>]::new(&beatmap_rosu)
                         .mods(score.mods.into())
-                        .combo(score.max_combo as usize)
                         .n300(score.statistics.count_300 as usize)
                         .n100(score.statistics.count_100 as usize)
                         .n_misses(score.statistics.count_miss as usize)
@@ -93,10 +96,23 @@ pub async fn submit_scores(
             GameMode::Osu => Some(
                 calc!(Osu)
                     .n50(score.statistics.count_50 as usize)
+                    .combo(score.max_combo as usize)
                     .calculate()
                     .into(),
             ),
-            GameMode::Taiko => Some(calc!(Taiko).calculate().into()),
+            GameMode::Taiko => Some(
+                calc!(Taiko)
+                    .combo(score.max_combo as usize)
+                    .calculate()
+                    .into(),
+            ),
+            GameMode::Mania => Some(
+                calc!(Mania)
+                    .n320(score.statistics.count_geki as usize)
+                    .n200(score.statistics.count_katu as usize)
+                    .calculate()
+                    .into(),
+            ),
             _ => None,
         };
 
@@ -159,6 +175,19 @@ pub async fn submit_scores(
                 ",
                 score_id,
                 pp_acc,
+                pp_difficulty,
+                pp
+            ),
+            BonkersferformanceAttributes::Mania(ManiaPerformanceAttributes {
+                pp,
+                pp_difficulty,
+                ..
+            }) => sqlx::query!(
+                "
+                INSERT INTO mania_performance (id, difficulty, overall)
+                VALUES (?, ?, ?)
+                ",
+                score_id,
                 pp_difficulty,
                 pp
             ),

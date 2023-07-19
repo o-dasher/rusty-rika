@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use lexicon::Localizer;
-use log::{error, info, warn};
+use log::{error, info};
 use poise::{
     serenity_prelude::{self, GuildId},
     Framework,

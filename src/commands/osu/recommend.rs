@@ -11,7 +11,7 @@ use crate::{
         CommandReturn,
     },
     error::RikaError,
-    models::osu_score::{OsuPerformance, OsuScore, TaikoPerformance},
+    models::osu_score::{ManiaPerformance, OsuPerformance, OsuScore, TaikoPerformance},
     utils::{emojis::RikaMoji, markdown::mono, replies::cool_text},
     RikaContext, RikaData,
 };
@@ -30,6 +30,7 @@ pub async fn recommend(ctx: RikaContext<'_>, mode: OsuMode) -> CommandReturn {
     enum PerformanceKind {
         Osu(OsuPerformance),
         Taiko(TaikoPerformance),
+        Mania(ManiaPerformance),
     }
 
     macro_rules! fetch_performance {
@@ -57,6 +58,13 @@ pub async fn recommend(ctx: RikaContext<'_>, mode: OsuMode) -> CommandReturn {
             "
             SELECT pp.* FROM osu_score s
             JOIN taiko_performance pp ON s.id = pp.id WHERE osu_user_id = ?
+            "
+        ),
+        OsuMode::Mania => fetch_performance!(
+            ManiaPerformance,
+            "
+            SELECT pp.* FROM osu_score s
+            JOIN mania_performance pp ON s.id = pp.id WHERE osu_user_id = ?
             "
         ),
         _ => None,
@@ -164,6 +172,27 @@ pub async fn recommend(ctx: RikaContext<'_>, mode: OsuMode) -> CommandReturn {
                 ",
                 min_acc,
                 max_acc,
+                min_diff,
+                max_diff
+            )
+            .fetch_one(db)
+            .await
+        }
+        OsuMode::Mania => {
+            create_weighter!(Mania);
+
+            let (min_diff, max_diff) = apply_weight!(difficulty);
+
+            sqlx::query_as!(
+                OsuScore,
+                "
+                SELECT s.*
+                FROM osu_score s
+                JOIN mania_performance pp ON s.id = pp.id
+                WHERE 
+                    pp.difficulty BETWEEN ? AND ?
+                ORDER BY RAND()
+                ",
                 min_diff,
                 max_diff
             )

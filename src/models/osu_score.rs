@@ -16,6 +16,12 @@ pub struct TaikoPerformance {
     pub overall: f32,
 }
 
+pub struct ManiaPerformance {
+    pub id: u64,
+    pub difficulty: f32,
+    pub overall: f32,
+}
+
 pub struct OsuScore {
     pub id: u64,
     pub osu_user_id: u32,

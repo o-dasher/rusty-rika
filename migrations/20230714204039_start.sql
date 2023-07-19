@@ -45,3 +45,12 @@ CREATE TABLE taiko_performance (
 
     FOREIGN KEY (id) REFERENCES osu_score (id) ON DELETE CASCADE
 );
+
+CREATE TABLE mania_performance (
+    id BIGINT UNSIGNED PRIMARY KEY NOT NULL,
+
+    difficulty FLOAT NOT NULL,
+    overall FLOAT NOT NULL,
+
+    FOREIGN KEY (id) REFERENCES osu_score (id) ON DELETE CASCADE
+)
