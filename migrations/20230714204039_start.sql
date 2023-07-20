@@ -11,7 +11,9 @@ CREATE TABLE osu_user (
 );
 
 CREATE TABLE osu_score (
-    id BIGINT UNSIGNED PRIMARY KEY NOT NULL,
+    id SERIAL PRIMARY KEY NOT NULL,
+
+    osu_score_id BIGINT UNSIGNED NOT NULL,
     osu_user_id INT UNSIGNED NOT NULL,
 
     mods INT UNSIGNED NOT NULL,

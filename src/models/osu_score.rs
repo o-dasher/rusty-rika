@@ -25,6 +25,7 @@ pub struct ManiaPerformance {
 pub struct OsuScore {
     pub id: u64,
     pub osu_user_id: u32,
+    pub osu_score_id: u64,
     pub mods: u32,
     pub map_id: u32,
     pub created_at: OffsetDateTime,

@@ -113,7 +113,7 @@ pub async fn recommend(ctx: RikaContext<'_>, mode: OsuMode) -> CommandReturn {
 
             macro_rules! apply_weight {
                 ($field:ident) => {{
-                    mid_interval(weight_to(|v| v.$field), 0.5)
+                    mid_interval(weight_to(|v| v.$field), 0.3)
                 }};
             }
         };

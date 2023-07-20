@@ -1,4 +1,7 @@
-use std::{collections::HashSet, sync::Arc};
+use std::{
+    collections::HashSet,
+    sync::Arc,
+};
 
 use derive_more::From;
 use itertools::Itertools;
@@ -142,7 +145,7 @@ pub async fn submit_scores(
     for (bonkers_performance, (score, score_id)) in performance_information {
         sqlx::query!(
             "
-            INSERT INTO osu_score (id, osu_user_id, map_id, mods, mode)
+            INSERT INTO osu_score (osu_score_id, osu_user_id, map_id, mods, mode)
             VALUES (?, ?, ?, ?, ?)
             ",
             score_id,
@@ -153,6 +156,17 @@ pub async fn submit_scores(
         )
         .execute(&mut *tx)
         .await?;
+
+        // https://github.com/launchbadge/sqlx/issues/2457
+        // This shouldn't exist but since sqlx is bugged...
+        let db_score_id = sqlx::query!(
+            "SELECT id FROM osu_score WHERE osu_score_id = ? AND mode = ?",
+            score_id,
+            mode_bits
+        )
+        .fetch_one(&mut *tx)
+        .await?
+        .id;
 
         match bonkers_performance {
             BonkersferformanceAttributes::Osu(OsuPerformanceAttributes {
@@ -168,7 +182,7 @@ pub async fn submit_scores(
                     INSERT INTO osu_performance (id, aim, speed, flashlight, accuracy, overall)
                     VALUES (?, ?, ?, ?, ?, ?)
                     ",
-                    score_id,
+                    db_score_id,
                     pp_aim,
                     pp_speed,
                     pp_flashlight,
@@ -186,7 +200,7 @@ pub async fn submit_scores(
                 INSERT INTO taiko_performance (id, accuracy, difficulty, overall)
                 VALUES (?, ?, ?, ?)
                 ",
-                score_id,
+                db_score_id,
                 pp_acc,
                 pp_difficulty,
                 pp
@@ -200,7 +214,7 @@ pub async fn submit_scores(
                 INSERT INTO mania_performance (id, difficulty, overall)
                 VALUES (?, ?, ?)
                 ",
-                score_id,
+                db_score_id,
                 pp_difficulty,
                 pp
             ),
