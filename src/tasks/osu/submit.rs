@@ -1,13 +1,9 @@
 use std::{collections::HashSet, sync::Arc};
 
-
 use derive_more::From;
 use itertools::Itertools;
-
 use log::info;
 use paste::paste;
-use poise::futures_util::TryFutureExt;
-
 use rosu_pp::{
     mania::ManiaPerformanceAttributes, osu::OsuPerformanceAttributes,
     taiko::TaikoPerformanceAttributes, ManiaPP, OsuPP, TaikoPP,
@@ -16,7 +12,8 @@ use rosu_v2::prelude::{GameMode, Score};
 use tokio::sync::mpsc::Sender;
 
 use crate::{
-    commands::CommandReturn, RikaData,
+    commands::CommandReturn,
+    RikaData,
 };
 
 #[derive(From)]
@@ -49,9 +46,7 @@ pub async fn submit_scores(
         SubmissionID::ByUsername(username) => rosu.user(username).await?.user_id,
     };
 
-    submit_locker
-        .lock(osu_id.to_string())
-        .await?;
+    submit_locker.lock(osu_id.to_string()).await?;
 
     let osu_scores = rosu.user_scores(osu_id).limit(100).mode(mode).await?;
 

@@ -20,10 +20,11 @@ use derive_more::From;
 use super::RikaOsuError;
 
 #[poise::command(slash_command)]
-pub async fn recommend(ctx: RikaContext<'_>, mode: OsuMode) -> CommandReturn {
+pub async fn recommend(ctx: RikaContext<'_>, mode: OsuMode, range: Option<f32>) -> CommandReturn {
     let i18n = ctx.i18n();
     let RikaData { db, .. } = ctx.data().as_ref();
 
+    let range = range.unwrap_or(0.3);
     let (.., osu_id) = ctx.linked_osu_user().await?;
 
     #[derive(From)]
@@ -113,7 +114,7 @@ pub async fn recommend(ctx: RikaContext<'_>, mode: OsuMode) -> CommandReturn {
 
             macro_rules! apply_weight {
                 ($field:ident) => {{
-                    mid_interval(weight_to(|v| v.$field), 0.3)
+                    mid_interval(weight_to(|v| v.$field), range)
                 }};
             }
         };

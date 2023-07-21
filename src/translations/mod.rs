@@ -23,7 +23,6 @@ nestruct::nest! {
                 too_long_warning: lexicon::R?,
                 progress_shower: lexicon::GR<(usize, usize)>?,
                 already_submitting: lexicon::R?
-                
             },
             recommend: {
                 recommendation: lexicon::GR<(String, String)>?,
