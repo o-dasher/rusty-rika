@@ -22,6 +22,7 @@ tokio = { version = "1.29.1", features = ["full"] }
 nestruct = "0.1.0"
 lexicon = {path = "./lexicon" }
 roricon = {path = "./roricon" }
+id-locked = {path = "./id-locked" }
 bevy_reflect = "0.11.0"
 env_logger = "0.10.0"
 tracing-subscriber = "0.3.17"

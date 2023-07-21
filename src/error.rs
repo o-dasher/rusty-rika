@@ -6,6 +6,7 @@ use crate::{
     RikaData,
 };
 use derive_more::From;
+use id_locked::IDLockerError;
 use log::error;
 use poise::serenity_prelude;
 use rosu_v2::prelude::OsuError;
@@ -20,6 +21,7 @@ pub enum RikaError {
     Osu(OsuError),
     Rosu(rosu_pp::ParseError),
     RikaOsu(RikaOsuError),
+    LockError(IDLockerError),
 
     Fallthrough,
 }

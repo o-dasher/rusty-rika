@@ -1053,6 +1053,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "id-locked"
+version = "0.1.0"
+dependencies = [
+ "strum",
+ "thiserror",
+ "tokio",
+]
+
+[[package]]
 name = "ident_case"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1815,6 +1824,7 @@ dependencies = [
  "envy",
  "exmex",
  "fchashmap",
+ "id-locked",
  "itertools 0.11.0",
  "lexicon",
  "log",

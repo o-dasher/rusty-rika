@@ -11,6 +11,7 @@ use std::sync::Arc;
 use commands::{math::math, osu::osu, owner::owner, rate::rate, user::user};
 use dotenvy::dotenv;
 use error::RikaError;
+use id_locked::IDLocker;
 use lexicon::Localizer;
 use log::error;
 
@@ -39,6 +40,7 @@ pub struct RikaData {
     pub locales: Localizer<RikaLocale, RikaLocalizer>,
     pub rosu: rosu_v2::Osu,
     pub beatmap_cache: BeatmapCache,
+    pub submit_locker: IDLocker,
     pub db: MySqlPool,
 }
 

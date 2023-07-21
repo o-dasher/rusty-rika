@@ -1,12 +1,13 @@
-use std::{
-    collections::HashSet,
-    sync::Arc,
-};
+use std::{collections::HashSet, sync::Arc};
+
 
 use derive_more::From;
 use itertools::Itertools;
+
 use log::info;
 use paste::paste;
+use poise::futures_util::TryFutureExt;
+
 use rosu_pp::{
     mania::ManiaPerformanceAttributes, osu::OsuPerformanceAttributes,
     taiko::TaikoPerformanceAttributes, ManiaPP, OsuPP, TaikoPP,
@@ -14,7 +15,9 @@ use rosu_pp::{
 use rosu_v2::prelude::{GameMode, Score};
 use tokio::sync::mpsc::Sender;
 
-use crate::{commands::CommandReturn, RikaData};
+use crate::{
+    commands::CommandReturn, RikaData,
+};
 
 #[derive(From)]
 pub enum SubmissionID {
@@ -35,6 +38,7 @@ pub async fn submit_scores(
         db,
         rosu,
         beatmap_cache,
+        submit_locker,
         ..
     } = data.as_ref();
 
@@ -44,6 +48,10 @@ pub async fn submit_scores(
         SubmissionID::ByStoredID(id) => id,
         SubmissionID::ByUsername(username) => rosu.user(username).await?.user_id,
     };
+
+    submit_locker
+        .lock(osu_id.to_string())
+        .await?;
 
     let osu_scores = rosu.user_scores(osu_id).limit(100).mode(mode).await?;
 

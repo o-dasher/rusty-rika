@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use lexicon::t;
 use roricon::RoriconTrait;
 use rosu_v2::prelude::GameMode;
@@ -8,6 +9,7 @@ use crate::{
         osu::{OsuMode, RikaOsuContext},
         CommandReturn,
     },
+    error::RikaError,
     tasks::osu::submit::submit_scores,
     utils::{emojis::RikaMoji, replies::cool_text},
     RikaContext,
@@ -46,8 +48,12 @@ pub async fn submit(ctx: RikaContext<'_>, mode: OsuMode) -> CommandReturn {
     }
 
     if let Ok(result) = submit_result.await {
-        result?
-        
+        result.map_err(|e| match e {
+            RikaError::LockError(..) => {
+                anyhow!(t!(i18n.osu.submit.already_submitting).clone()).into()
+            }
+            e => e,
+        })?
     }
 
     msg.edit(ctx, |r| {

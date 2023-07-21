@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use id_locked::IDLocker;
 use lexicon::Localizer;
 use log::{error, info};
 use poise::{
@@ -46,14 +47,13 @@ pub async fn setup(
         .await
         .expect("Failed to connect to database!");
 
-    let beatmap_cache = BeatmapCache::new();
-
     let rika_data = Arc::new(RikaData {
         config,
         locales,
         rosu,
-        beatmap_cache,
         db,
+        beatmap_cache: BeatmapCache::new(),
+        submit_locker: IDLocker::new(),
     });
 
     let cloned_data = rika_data.clone();

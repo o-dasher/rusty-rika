@@ -1,12 +1,7 @@
 /// This is kind of a disgusting type magic, but i think it is kind of understable
 /// given the problem that this is trying to solve.
 ///
-use std::{
-    collections::HashMap,
-    fmt::Display,
-    hash::Hash,
-    str::FromStr,
-};
+use std::{collections::HashMap, fmt::Display, hash::Hash, str::FromStr};
 
 use bevy_reflect::Reflect;
 use itertools::{iproduct, Itertools};
