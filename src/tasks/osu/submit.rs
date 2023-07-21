@@ -11,10 +11,7 @@ use rosu_pp::{
 use rosu_v2::prelude::{GameMode, Score};
 use tokio::sync::mpsc::Sender;
 
-use crate::{
-    commands::CommandReturn,
-    RikaData,
-};
+use crate::{commands::CommandReturn, RikaData};
 
 #[derive(From)]
 pub enum SubmissionID {
@@ -50,9 +47,11 @@ pub async fn submit_scores(
 
     let osu_scores = rosu.user_scores(osu_id).limit(100).mode(mode).await?;
 
+    // THIS DOES NOT HANDLE OTHER MODES FIX THIS ASAP.
     let rika_osu_scores = sqlx::query!(
         "
-        SELECT s.id FROM osu_score s
+        SELECT s.osu_score_id FROM osu_score s
+        -- osu_performance must be {mode}_performance.
         JOIN osu_performance pp ON s.id = pp.id
         WHERE s.osu_user_id = ? AND s.mode = ?
         ",
@@ -62,7 +61,11 @@ pub async fn submit_scores(
     .fetch_all(db)
     .await?;
 
-    let existing_scores: HashSet<_> = rika_osu_scores.into_iter().map(|s| s.id).collect();
+    let existing_scores: HashSet<_> = rika_osu_scores
+        .into_iter()
+        .map(|s| s.osu_score_id)
+        .collect();
+
     let new_scores = osu_scores
         .iter()
         .filter_map(|s| {
