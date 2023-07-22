@@ -1,5 +1,5 @@
 use crate::{commands::CommandReturn, utils::emojis::RikaMoji, RikaContext};
-use lexicon::{ t_prefix};
+use lexicon::t_prefix;
 use poise::serenity_prelude::{self, Color};
 use roricon::RoriconTrait;
 

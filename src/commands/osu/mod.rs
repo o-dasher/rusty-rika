@@ -1,6 +1,6 @@
 pub mod link;
-pub mod recommend;
 pub mod submit;
+pub mod recommend;
 
 use link::link;
 use poise::{async_trait, command, ChoiceParameter};
