@@ -4,7 +4,7 @@ use std::{
     hash::{Hash, Hasher},
 };
 
-use lexicon::t;
+use lexicon::t_prefix;
 use poise::command;
 use rand::{seq::SliceRandom, Rng, SeedableRng};
 use roricon::RoriconTrait;
@@ -21,6 +21,8 @@ const REALLY_CUTE: [&str; 2] = ["dasher", "rika"];
 
 async fn execute_rate(ctx: RikaContext<'_>, who: String) -> CommandReturn {
     let i18n = ctx.i18n();
+    t_prefix!($, i18n.rate);
+
     let safe_who = who.to_lowercase();
 
     let mut hasher = DefaultHasher::new();
@@ -35,11 +37,11 @@ async fn execute_rate(ctx: RikaContext<'_>, who: String) -> CommandReturn {
         rng.gen_range(1..=10)
     };
 
-    let rated = t!(i18n.rate.rated).r((mono(who), rating.to_string()));
-    let feedback_list = t!(i18n.rate.feedback);
+    let rated = t!(rated).r((mono(who), rating.to_string()));
+    let feedback_list = t!(feedback);
 
     let feedback = feedback_list
-        .get(rating.min(feedback_list.len()) - 1)
+        .get(rating.max(feedback_list.len()) - 1)
         .and_then(|fb| fb.choose(&mut rng))
         .ok_or(RikaError::Fallthrough)?;
 

@@ -23,6 +23,21 @@ macro_rules! r {
 }
 
 #[macro_export]
+macro_rules! t_prefix {
+    ($dollar:tt, $name:ident, $prefix_var:ident $(. $prefix_access:tt)*) => (
+        macro_rules! $name {
+            ($dollar($access:tt).*) => (
+                $prefix_var.r(|v| &v$(. $prefix_access)* $dollar(. $access)*)
+            )
+        }
+    );
+
+    ($dollar:tt, $prefix_var:ident $(.$prefix_access:tt)*) => (
+        t_prefix!($dollar, t, $prefix_var $(. $prefix_access)*)
+    );
+}
+
+#[macro_export]
 macro_rules! t {
     ($var:ident.$($access:tt).*) => {
         $var.r(|v| &v.$($access).*)

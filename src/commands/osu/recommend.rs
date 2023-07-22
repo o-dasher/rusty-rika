@@ -1,6 +1,6 @@
 use anyhow::anyhow;
 use itertools::Itertools;
-use lexicon::t;
+use lexicon::t_prefix;
 use num_traits::Float;
 use paste::paste;
 use roricon::RoriconTrait;
@@ -23,6 +23,8 @@ use super::RikaOsuError;
 #[poise::command(slash_command)]
 pub async fn recommend(ctx: RikaContext<'_>, mode: OsuMode, range: Option<f32>) -> CommandReturn {
     let i18n = ctx.i18n();
+    t_prefix!($, i18n.osu.recommend);
+
     let RikaData { db, .. } = ctx.data().as_ref();
 
     let range = range.unwrap_or(0.3);
@@ -188,13 +190,13 @@ pub async fn recommend(ctx: RikaContext<'_>, mode: OsuMode, range: Option<f32>) 
         }
         _ => Err(RikaError::Fallthrough)?,
     }
-    .map_err(|_| anyhow!(t!(i18n.osu.recommend.not_found).clone()))?;
+    .map_err(|_| anyhow!(t!(not_found).clone()))?;
 
     let beatmap_link = format!("https://osu.ppy.sh/b/{}", possible_recommendation.map_id);
     let displayable_mods = GameMods::try_from(possible_recommendation.mods)?;
 
     let content =
-        t!(i18n.osu.recommend.recommendation).r((beatmap_link, mono(displayable_mods.to_string())));
+        t!(recommendation).r((beatmap_link, mono(displayable_mods.to_string())));
 
     ctx.say(cool_text(RikaMoji::Ok, &content)).await?;
 
