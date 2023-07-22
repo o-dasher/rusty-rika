@@ -58,7 +58,8 @@ macro_rules! fetch_performance {
             let row: Vec<[<$mode Performance>]> = sqlx::query_as(&format!(
                 "
                 SELECT pp.* FROM osu_score s
-                JOIN {}_performance pp ON s.id = pp.id WHERE osu_user_id = ?
+                JOIN {}_performance pp ON s.id = pp.score_id
+                WHERE osu_user_id = ?
                 ORDER BY pp.overall DESC
                 ",
                 OsuMode::$mode.to_string().to_lowercase()
@@ -116,7 +117,7 @@ async fn query_recommendation<'a>(
         "
         SELECT s.*
         FROM osu_score s
-        JOIN {mode}_performance pp ON s.id = pp.id
+        JOIN {mode}_performance pp ON s.id = pp.score_id
         WHERE
         "
     ));

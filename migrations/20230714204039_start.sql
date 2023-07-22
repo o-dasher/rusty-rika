@@ -11,23 +11,23 @@ CREATE TABLE osu_user (
 );
 
 CREATE TABLE osu_score (
-    id SERIAL PRIMARY KEY NOT NULL,
+    id BIGINT UNSIGNED NOT NULL,
+    mode SMALLINT NOT NULL,
 
-    osu_score_id BIGINT UNSIGNED NOT NULL,
     osu_user_id INT UNSIGNED NOT NULL,
 
     mods INT UNSIGNED NOT NULL,
     map_id INT UNSIGNED NOT NULL,
 
     created_at TIMESTAMP DEFAULT NOW() NOT NULL,
-    mode SMALLINT NOT NULL,
-    
+   
+    PRIMARY KEY (id, mode),
     FOREIGN KEY (osu_user_id) REFERENCES osu_user (id) ON DELETE CASCADE
 );
 
 
 CREATE TABLE osu_performance (
-    id BIGINT UNSIGNED PRIMARY KEY NOT NULL,
+    score_id BIGINT UNSIGNED PRIMARY KEY,
 
     aim FLOAT NOT NULL,
     speed FLOAT NOT NULL,
@@ -35,24 +35,24 @@ CREATE TABLE osu_performance (
     flashlight FLOAT NOT NULL,
     overall FLOAT NOT NULL,
 
-    FOREIGN KEY (id) REFERENCES osu_score (id) ON DELETE CASCADE
+    FOREIGN KEY (score_id) REFERENCES osu_score (id) ON DELETE CASCADE
 );
 
 CREATE TABLE taiko_performance (
-    id BIGINT UNSIGNED PRIMARY KEY NOT NULL,
+    score_id BIGINT UNSIGNED PRIMARY KEY,
 
     accuracy FLOAT NOT NULL,
     difficulty FLOAT NOT NULL,
     overall FLOAT NOT NULL,
 
-    FOREIGN KEY (id) REFERENCES osu_score (id) ON DELETE CASCADE
+    FOREIGN KEY (score_id) REFERENCES osu_score (id) ON DELETE CASCADE
 );
 
 CREATE TABLE mania_performance (
-    id BIGINT UNSIGNED PRIMARY KEY NOT NULL,
+    score_id BIGINT UNSIGNED PRIMARY KEY,
 
     difficulty FLOAT NOT NULL,
     overall FLOAT NOT NULL,
 
-    FOREIGN KEY (id) REFERENCES osu_score (id) ON DELETE CASCADE
-)
+    FOREIGN KEY (score_id) REFERENCES osu_score (id) ON DELETE CASCADE
+);

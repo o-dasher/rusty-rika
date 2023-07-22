@@ -68,24 +68,23 @@ pub async fn submit_scores(
 
     #[derive(sqlx::FromRow)]
     struct ExistingScore {
-        osu_score_id: u64,
+        id: u64,
     }
 
     let rika_osu_scores: Vec<ExistingScore> = sqlx::query_as(&format!(
         "
-        SELECT s.osu_score_id FROM osu_score s
-        JOIN {submit_mode}_performance pp ON s.id = pp.id
-        WHERE s.osu_user_id = ? AND s.mode = ?
+        SELECT s.id FROM osu_score s
+        JOIN {submit_mode}_performance pp ON s.id = pp.score_id
+        WHERE s.osu_user_id = ?
         "
     ))
     .bind(osu_id)
-    .bind(mode_bits)
     .fetch_all(db)
     .await?;
 
     let existing_scores: HashSet<_> = rika_osu_scores
         .into_iter()
-        .map(|s| s.osu_score_id)
+        .map(|s| s.id)
         .collect();
 
     let new_scores = osu_scores
@@ -171,21 +170,19 @@ pub async fn submit_scores(
     // Can't we do all this in a single query at this point? i think so? i am not sure.
     // I mean, anyways this takes at most 30ms the chances of any deadlocks here are minimal.
     for (bonkers_performance, (score, score_id)) in performance_information {
-        let inserted_score = sqlx::query(
+        sqlx::query!(
             "
-            INSERT INTO osu_score (osu_score_id, osu_user_id, map_id, mods, mode)
+            INSERT INTO osu_score (id, osu_user_id, map_id, mods, mode)
             VALUES (?, ?, ?, ?, ?)
             ",
+            score_id,
+            osu_id,
+            score.map_id,
+            score.mods.bits(),
+            mode_bits
         )
-        .bind(score_id)
-        .bind(osu_id)
-        .bind(score.map_id)
-        .bind(score.mods.bits())
-        .bind(mode_bits)
         .execute(&mut *tx)
         .await?;
-
-        let db_score_id = inserted_score.last_insert_id();
 
         match bonkers_performance {
             BonkersferformanceAttributes::Osu(OsuPerformanceAttributes {
@@ -198,10 +195,10 @@ pub async fn submit_scores(
             }) => {
                 sqlx::query!(
                     "
-                    INSERT INTO osu_performance (id, aim, speed, flashlight, accuracy, overall)
+                    INSERT INTO osu_performance (score_id, aim, speed, flashlight, accuracy, overall)
                     VALUES (?, ?, ?, ?, ?, ?)
                     ",
-                    db_score_id,
+                    score_id,
                     pp_aim,
                     pp_speed,
                     pp_flashlight,
@@ -216,10 +213,10 @@ pub async fn submit_scores(
                 ..
             }) => sqlx::query!(
                 "
-                INSERT INTO taiko_performance (id, accuracy, difficulty, overall)
+                INSERT INTO taiko_performance (score_id, accuracy, difficulty, overall)
                 VALUES (?, ?, ?, ?)
                 ",
-                db_score_id,
+                score_id,
                 pp_acc,
                 pp_difficulty,
                 pp
@@ -230,10 +227,10 @@ pub async fn submit_scores(
                 ..
             }) => sqlx::query!(
                 "
-                INSERT INTO mania_performance (id, difficulty, overall)
+                INSERT INTO mania_performance (score_id, difficulty, overall)
                 VALUES (?, ?, ?)
                 ",
-                db_score_id,
+                score_id,
                 pp_difficulty,
                 pp
             ),
