@@ -11,7 +11,7 @@ use rosu_pp::{
 use rosu_v2::prelude::{GameMode, Score};
 use sqlx::{MySql, QueryBuilder};
 use strum::Display;
-use tokio::{sync::mpsc::Sender, time::Instant};
+use tokio::{sync::mpsc::Sender};
 
 use crate::{
     commands::{osu::RikaOsuError, CommandReturn},
