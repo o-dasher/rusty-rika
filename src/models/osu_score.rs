@@ -1,5 +1,6 @@
 use sqlx::types::time::OffsetDateTime;
 
+#[derive(sqlx::FromRow)]
 pub struct OsuPerformance {
     pub id: u64,
     pub aim: f32,
@@ -9,6 +10,7 @@ pub struct OsuPerformance {
     pub overall: f32,
 }
 
+#[derive(sqlx::FromRow)]
 pub struct TaikoPerformance {
     pub id: u64,
     pub accuracy: f32,
@@ -16,6 +18,7 @@ pub struct TaikoPerformance {
     pub overall: f32,
 }
 
+#[derive(sqlx::FromRow)]
 pub struct ManiaPerformance {
     pub id: u64,
     pub difficulty: f32,

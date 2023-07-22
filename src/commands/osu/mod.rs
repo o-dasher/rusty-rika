@@ -7,6 +7,7 @@ use poise::{async_trait, command, ChoiceParameter};
 use recommend::recommend;
 use rosu_v2::prelude::GameMode;
 use sqlx::Result;
+use strum::IntoStaticStr;
 use submit::submit;
 
 use crate::{commands::CommandReturn, error, RikaContext, RikaData};
@@ -20,7 +21,7 @@ pub async fn osu(_ctx: RikaContext<'_>) -> CommandReturn {
 #[repr(u8)]
 pub enum OsuMode {
     #[default]
-    Standard = 0,
+    Osu = 0,
     Taiko = 1,
     Catch = 2,
     Mania = 3,
@@ -41,7 +42,7 @@ pub enum RikaOsuError {
     RequiresSubmission,
 
     #[error("This command does not support this mode.")]
-    UnsupportedMode
+    UnsupportedMode,
 }
 
 #[async_trait]

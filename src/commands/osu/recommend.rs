@@ -2,6 +2,7 @@ use anyhow::anyhow;
 use itertools::Itertools;
 use lexicon::t;
 use num_traits::Float;
+use paste::paste;
 use roricon::RoriconTrait;
 use rosu_v2::prelude::GameMods;
 
@@ -35,48 +36,33 @@ pub async fn recommend(ctx: RikaContext<'_>, mode: OsuMode, range: Option<f32>) 
     }
 
     macro_rules! fetch_performance {
-        ($type:ty, $query:literal) => {
-            sqlx::query_as!($type, $query, osu_id)
+        ($mode:ident) => {{
+            paste! {
+                let row: Vec<[<$mode Performance>]> = sqlx::query_as(&format!(
+                    "
+                    SELECT pp.* FROM osu_score s
+                    JOIN {}_performance pp ON s.id = pp.id WHERE osu_user_id = ?
+                    ",
+                    OsuMode::$mode.to_string().to_lowercase()
+                ))
+                .bind(osu_id)
                 .fetch_all(db)
-                .await?
-                .into_iter()
-                .map_into()
-                .collect_vec()
-                .into()
-        };
+                .await?;
+
+                row.into_iter().map_into().collect_vec().into()
+            }
+        }};
     }
 
-    let performance_values: Option<Vec<PerformanceKind>> = match mode {
-        OsuMode::Standard => fetch_performance!(
-            OsuPerformance,
-            "
-            SELECT pp.* FROM osu_score s
-            JOIN osu_performance pp ON s.id = pp.id WHERE osu_user_id = ?
-            "
-        ),
-        OsuMode::Taiko => fetch_performance!(
-            TaikoPerformance,
-            "
-            SELECT pp.* FROM osu_score s
-            JOIN taiko_performance pp ON s.id = pp.id WHERE osu_user_id = ?
-            "
-        ),
-        OsuMode::Mania => fetch_performance!(
-            ManiaPerformance,
-            "
-            SELECT pp.* FROM osu_score s
-            JOIN mania_performance pp ON s.id = pp.id WHERE osu_user_id = ?
-            "
-        ),
-        _ => None,
-    };
-
-    let Some(performance_values) = performance_values else {
-        return Err(RikaOsuError::UnsupportedMode.into())
+    let performance_values: Vec<PerformanceKind> = match mode {
+        OsuMode::Osu => fetch_performance!(Osu),
+        OsuMode::Taiko => fetch_performance!(Taiko),
+        OsuMode::Mania => fetch_performance!(Mania),
+        OsuMode::Catch => Err(RikaOsuError::UnsupportedMode)?,
     };
 
     if performance_values.is_empty() {
-        return Err(RikaOsuError::RequiresSubmission.into());
+        return Err(RikaOsuError::RequiresSubmission)?;
     }
 
     fn get_weighter<T>(vec: Vec<T>) -> impl Fn(for<'a> fn(&'a T) -> f32) -> f32 {
@@ -121,7 +107,7 @@ pub async fn recommend(ctx: RikaContext<'_>, mode: OsuMode, range: Option<f32>) 
     }
 
     let possible_recommendation = match mode {
-        OsuMode::Standard => {
+        OsuMode::Osu => {
             create_weighter!(Osu);
 
             let (min_speed, max_speed) = apply_weight!(speed);

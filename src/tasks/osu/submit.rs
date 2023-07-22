@@ -9,14 +9,26 @@ use rosu_pp::{
     taiko::TaikoPerformanceAttributes, ManiaPP, OsuPP, TaikoPP,
 };
 use rosu_v2::prelude::{GameMode, Score};
+use strum::Display;
 use tokio::sync::mpsc::Sender;
 
-use crate::{commands::CommandReturn, RikaData};
+use crate::{
+    commands::{osu::RikaOsuError, CommandReturn},
+    RikaData,
+};
 
 #[derive(From)]
 pub enum SubmissionID {
     ByStoredID(u32),
     ByUsername(String),
+}
+
+#[derive(Display)]
+#[strum(serialize_all = "lowercase")]
+enum SubmittableMode {
+    Osu,
+    Taiko,
+    Mania,
 }
 
 // The buffer for the receiver of the messages here will always remains to be 100
@@ -28,6 +40,13 @@ pub async fn submit_scores(
     mode: GameMode,
     sender: Option<Sender<(usize, usize)>>,
 ) -> CommandReturn {
+    let submit_mode = match mode {
+        GameMode::Osu => SubmittableMode::Osu,
+        GameMode::Taiko => SubmittableMode::Taiko,
+        GameMode::Mania => SubmittableMode::Mania,
+        GameMode::Catch => Err(RikaOsuError::UnsupportedMode)?,
+    };
+
     let RikaData {
         db,
         rosu,
@@ -47,17 +66,20 @@ pub async fn submit_scores(
 
     let osu_scores = rosu.user_scores(osu_id).limit(100).mode(mode).await?;
 
-    // THIS DOES NOT HANDLE OTHER MODES FIX THIS ASAP.
-    let rika_osu_scores = sqlx::query!(
+    #[derive(sqlx::FromRow)]
+    struct ExistingScore {
+        osu_score_id: u64,
+    }
+
+    let rika_osu_scores: Vec<ExistingScore> = sqlx::query_as(&format!(
         "
         SELECT s.osu_score_id FROM osu_score s
-        -- osu_performance must be {mode}_performance.
-        JOIN osu_performance pp ON s.id = pp.id
+        JOIN {submit_mode}_performance pp ON s.id = pp.id
         WHERE s.osu_user_id = ? AND s.mode = ?
-        ",
-        osu_id,
-        mode_bits
-    )
+        "
+    ))
+    .bind(osu_id)
+    .bind(mode_bits)
     .fetch_all(db)
     .await?;
 
@@ -149,30 +171,21 @@ pub async fn submit_scores(
     // Can't we do all this in a single query at this point? i think so? i am not sure.
     // I mean, anyways this takes at most 30ms the chances of any deadlocks here are minimal.
     for (bonkers_performance, (score, score_id)) in performance_information {
-        sqlx::query!(
+        let inserted_score = sqlx::query(
             "
             INSERT INTO osu_score (osu_score_id, osu_user_id, map_id, mods, mode)
             VALUES (?, ?, ?, ?, ?)
             ",
-            score_id,
-            osu_id,
-            score.map_id,
-            score.mods.bits(),
-            mode_bits
         )
+        .bind(score_id)
+        .bind(osu_id)
+        .bind(score.map_id)
+        .bind(score.mods.bits())
+        .bind(mode_bits)
         .execute(&mut *tx)
         .await?;
 
-        // https://github.com/launchbadge/sqlx/issues/2457
-        // This shouldn't exist but since sqlx is bugged...
-        let db_score_id = sqlx::query!(
-            "SELECT id FROM osu_score WHERE osu_score_id = ? AND mode = ?",
-            score_id,
-            mode_bits
-        )
-        .fetch_one(&mut *tx)
-        .await?
-        .id;
+        let db_score_id = inserted_score.last_insert_id();
 
         match bonkers_performance {
             BonkersferformanceAttributes::Osu(OsuPerformanceAttributes {
