@@ -11,7 +11,7 @@ use rosu_pp::{
 use rosu_v2::prelude::{GameMode, Score};
 use sqlx::{MySql, QueryBuilder};
 use strum::Display;
-use tokio::{sync::mpsc::Sender, time::Instant};
+use tokio::sync::mpsc::Sender;
 
 use crate::{
     commands::{osu::RikaOsuError, CommandReturn},
@@ -163,6 +163,8 @@ pub async fn submit_scores(
         }
     }
 
+    let mut tx = db.begin().await?;
+
     let mut scores_query_builder = QueryBuilder::<MySql>::new(
         "
         INSERT INTO osu_score (id, osu_user_id, map_id, mods, mode)
@@ -171,65 +173,83 @@ pub async fn submit_scores(
 
     scores_query_builder.push_values(
         &performance_information,
-        |mut b, (.., (score, score_id))| {
-            b.push_bind(score_id)
-                .push_bind(osu_id)
-                .push_bind(score.map_id)
-                .push_bind(score.mods.bits())
-                .push_bind(mode_bits);
+        |mut b, (bonkers_performance, (score, score_id))| {
+            b.push_bind(score_id).push_bind(osu_id).push_bind(score.map_id).push_bind(score.mods.bits()).push_bind(mode_bits)
+
         },
     );
 
-    let base_pp_query = |to_insert: &str| {
-        format!("INSERT INTO {submit_mode}_performance (score_id, overall, {to_insert})")
-    };
+    // Can't we do all this in a single query at this point? i think so? i am not sure.
+    // I mean, anyways this takes at most 30ms the chances of any deadlocks here are minimal.
+    for (bonkers_performance, (score, score_id)) in performance_information {
+        sqlx::query!(
+            "
+            INSERT INTO osu_score (id, osu_user_id, map_id, mods, mode)
+            VALUES (?, ?, ?, ?, ?)
+            ",
+            score_id,
+            osu_id,
+            score.map_id,
+            score.mods.bits(),
+            mode_bits
+        )
+        .execute(&mut *tx)
+        .await?;
 
-    let base_performance_query = match submit_mode {
-        SubmittableMode::Osu => base_pp_query("aim, speed, flashlight, accuracy"),
-        SubmittableMode::Taiko => base_pp_query("accuracy, difficulty"),
-        SubmittableMode::Mania => base_pp_query("difficulty"),
-    };
-
-    let mut performance_query_builder = QueryBuilder::<MySql>::new(base_performance_query);
-
-    performance_query_builder.push_values(
-        &performance_information,
-        |mut b, (bonkers_performance, (.., score_id))| {
-            b.push_bind(score_id);
-
-            match bonkers_performance {
-                BonkersferformanceAttributes::Osu(OsuPerformanceAttributes {
-                    pp,
-                    pp_acc,
+        match bonkers_performance {
+            BonkersferformanceAttributes::Osu(OsuPerformanceAttributes {
+                pp,
+                pp_acc,
+                pp_aim,
+                pp_flashlight,
+                pp_speed,
+                ..
+            }) => {
+                sqlx::query!(
+                    "
+                    INSERT INTO osu_performance (score_id, aim, speed, flashlight, accuracy, overall)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    ",
+                    score_id,
                     pp_aim,
-                    pp_flashlight,
                     pp_speed,
-                    ..
-                }) => b
-                    .push_bind(pp)
-                    .push_bind(pp_aim)
-                    .push_bind(pp_speed)
-                    .push_bind(pp_flashlight)
-                    .push_bind(pp_acc),
-                BonkersferformanceAttributes::Taiko(TaikoPerformanceAttributes {
-                    pp,
+                    pp_flashlight,
                     pp_acc,
-                    pp_difficulty,
-                    ..
-                }) => b.push_bind(pp).push_bind(pp_acc).push_bind(pp_difficulty),
-                BonkersferformanceAttributes::Mania(ManiaPerformanceAttributes {
-                    pp,
-                    pp_difficulty,
-                    ..
-                }) => b.push_bind(pp).push_bind(pp_difficulty),
-            };
-        },
-    );
-
-    let mut tx = db.begin().await?;
-
-    scores_query_builder.build().execute(&mut *tx).await?;
-    performance_query_builder.build().execute(&mut *tx).await?;
+                    pp
+                )
+            }
+            BonkersferformanceAttributes::Taiko(TaikoPerformanceAttributes {
+                pp,
+                pp_acc,
+                pp_difficulty,
+                ..
+            }) => sqlx::query!(
+                "
+                INSERT INTO taiko_performance (score_id, accuracy, difficulty, overall)
+                VALUES (?, ?, ?, ?)
+                ",
+                score_id,
+                pp_acc,
+                pp_difficulty,
+                pp
+            ),
+            BonkersferformanceAttributes::Mania(ManiaPerformanceAttributes {
+                pp,
+                pp_difficulty,
+                ..
+            }) => sqlx::query!(
+                "
+                INSERT INTO mania_performance (score_id, difficulty, overall)
+                VALUES (?, ?, ?)
+                ",
+                score_id,
+                pp_difficulty,
+                pp
+            ),
+        }
+        .execute(&mut *tx)
+        .await?;
+    }
 
     sqlx::query!(
         "
