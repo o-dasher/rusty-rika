@@ -62,7 +62,7 @@ pub async fn submit_scores(
         SubmissionID::ByUsername(username) => rosu.user(username).await?.user_id,
     };
 
-    submit_locker.lock(osu_id.to_string()).await?;
+    let locker_guard = submit_locker.lock(osu_id.to_string()).await?;
 
     let osu_scores = rosu.user_scores(osu_id).limit(100).mode(mode).await?;
 
@@ -265,6 +265,8 @@ pub async fn submit_scores(
     .await?;
 
     tx.commit().await?;
+
+    locker_guard.unlock().await?;
 
     Ok(())
 }

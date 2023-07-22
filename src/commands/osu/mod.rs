@@ -7,7 +7,6 @@ use poise::{async_trait, command, ChoiceParameter};
 use recommend::recommend;
 use rosu_v2::prelude::GameMode;
 use sqlx::Result;
-use strum::IntoStaticStr;
 use submit::submit;
 
 use crate::{commands::CommandReturn, error, RikaContext, RikaData};
