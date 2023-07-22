@@ -58,6 +58,7 @@ macro_rules! fetch_performance {
                 "
                 SELECT pp.* FROM osu_score s
                 JOIN {}_performance pp ON s.id = pp.id WHERE osu_user_id = ?
+                ORDER BY pp.overall DESC
                 ",
                 OsuMode::$mode.to_string().to_lowercase()
             ))
