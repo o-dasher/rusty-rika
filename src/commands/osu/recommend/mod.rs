@@ -1,5 +1,5 @@
-use crate::commands::CommandReturn;
 use crate::RikaContext;
+use crate::{commands::CommandReturn, models::osu_score::OsuScore};
 use num_traits::Float;
 use poise::command;
 
@@ -9,6 +9,7 @@ mod taiko;
 
 use mania::mania;
 use osu::osu;
+use sqlx::{MySql, Pool, QueryBuilder};
 use taiko::taiko;
 
 #[command(slash_command, subcommands("osu", "taiko", "mania"))]
@@ -78,7 +79,9 @@ macro_rules! fetch_performance {
 #[macro_export]
 macro_rules! reply_recommendation {
     ($ctx:expr, $recommendation:expr) => {
-        let recommendation = $recommendation.map_err(|_| anyhow!(t!(not_found).clone()))?;
+        let recommendation = $recommendation
+            .await
+            .map_err(|_| anyhow!(t!(not_found).clone()))?;
 
         let beatmap_link = format!("https://osu.ppy.sh/b/{}", recommendation.map_id);
         let displayable_mods = GameMods::try_from(recommendation.mods)?;
@@ -102,4 +105,31 @@ macro_rules! init_recommendation {
 
         create_weighter!(fetch_performance!($mode, osu_id, db), range);
     };
+}
+
+async fn query_recommendation<'a>(
+    pool: &Pool<MySql>,
+    mode: &'a str,
+    values: Vec<(&'a str, (f32, f32))>,
+) -> Result<OsuScore, sqlx::Error> {
+    let mut query = QueryBuilder::<MySql>::new(format!(
+        "
+        SELECT s.*
+        FROM osu_score s
+        JOIN {mode}_performance pp ON s.id = pp.id
+        WHERE
+        "
+    ));
+
+    let mut separated = query.separated(" AND ");
+
+    for (name, (min, max)) in values {
+        separated.push(format!("pp.{name} BETWEEN "));
+        separated.push_bind_unseparated(min);
+        separated.push_bind(max);
+    }
+
+    query.push(" ORDER BY RAND() ");
+
+    query.build_query_as().fetch_one(pool).await
 }

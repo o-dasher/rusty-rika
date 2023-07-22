@@ -1,5 +1,8 @@
 use super::{get_weighter, mid_interval};
-use crate::utils::{emojis::RikaMoji, markdown::mono, replies::cool_text};
+use crate::{
+    commands::osu::recommend::query_recommendation,
+    utils::{emojis::RikaMoji, markdown::mono, replies::cool_text},
+};
 use anyhow::anyhow;
 use lexicon::t_prefix;
 use paste::paste;
@@ -12,7 +15,7 @@ use crate::{
         CommandReturn,
     },
     create_weighter, fetch_performance, init_recommendation,
-    models::osu_score::{OsuPerformance, OsuScore},
+    models::osu_score::OsuPerformance,
     reply_recommendation, RikaContext, RikaData,
 };
 
@@ -27,30 +30,16 @@ pub async fn osu(ctx: RikaContext<'_>, range: Option<f32>) -> CommandReturn {
     let (min_aim, max_aim) = apply_weight!(aim);
     let (min_fl, max_fl) = apply_weight!(flashlight);
 
-    let recommendation = sqlx::query_as!(
-        OsuScore,
-        "
-        SELECT s.*
-        FROM osu_score s
-        JOIN osu_performance pp ON s.id = pp.id
-        WHERE 
-            pp.speed BETWEEN ? AND ? AND
-            pp.accuracy BETWEEN ? AND ? AND
-            pp.aim BETWEEN ? AND ? AND
-            pp.flashlight BETWEEN ? AND ?
-        ORDER BY RAND()
-        ",
-        min_speed,
-        max_speed,
-        min_acc,
-        max_acc,
-        min_aim,
-        max_aim,
-        min_fl,
-        max_fl
-    )
-    .fetch_one(db)
-    .await;
+    let recommendation = query_recommendation(
+        db,
+        "osu",
+        vec![
+            ("speed", (min_speed, max_speed)),
+            ("accuracy", (min_acc, max_acc)),
+            ("aim", (min_aim, max_aim)),
+            ("flashlight", (min_fl, max_fl)),
+        ],
+    );
 
     reply_recommendation!(ctx, recommendation);
 

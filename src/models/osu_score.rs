@@ -25,6 +25,7 @@ pub struct ManiaPerformance {
     pub overall: f32,
 }
 
+#[derive(sqlx::FromRow)]
 pub struct OsuScore {
     pub id: u64,
     pub osu_user_id: u32,

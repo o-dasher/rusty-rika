@@ -1,5 +1,8 @@
 use super::{get_weighter, mid_interval};
-use crate::utils::{emojis::RikaMoji, markdown::mono, replies::cool_text};
+use crate::{
+    commands::osu::recommend::query_recommendation,
+    utils::{emojis::RikaMoji, markdown::mono, replies::cool_text},
+};
 use anyhow::anyhow;
 use lexicon::t_prefix;
 use paste::paste;
@@ -12,7 +15,7 @@ use crate::{
         CommandReturn,
     },
     create_weighter, fetch_performance, init_recommendation,
-    models::osu_score::{ManiaPerformance, OsuScore},
+    models::osu_score::ManiaPerformance,
     reply_recommendation, RikaContext, RikaData,
 };
 
@@ -24,21 +27,8 @@ pub async fn mania(ctx: RikaContext<'_>, range: Option<f32>) -> CommandReturn {
 
     let (min_diff, max_diff) = apply_weight!(difficulty);
 
-    let recommendation = sqlx::query_as!(
-        OsuScore,
-        "
-        SELECT s.*
-        FROM osu_score s
-        JOIN mania_performance pp ON s.id = pp.id
-        WHERE 
-            pp.difficulty BETWEEN ? AND ?
-        ORDER BY RAND()
-        ",
-        min_diff,
-        max_diff
-    )
-    .fetch_one(db)
-    .await;
+    let recommendation =
+        query_recommendation(db, "mania", vec![("difficulty", (min_diff, max_diff))]);
 
     reply_recommendation!(ctx, recommendation);
 
