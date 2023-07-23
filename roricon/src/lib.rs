@@ -29,7 +29,7 @@ where
     Self: RoriconMetaTrait<'a, K, V>,
 {
     fn i18n(&self) -> LocaleAccess<'a, Localizer<K, V>> {
-            self.i18n_explicit(self.locales())
+        self.i18n_explicit(self.locales())
     }
 
     fn i18n_explicit(&self, localizer: &'a Localizer<K, V>) -> LocaleAccess<'a, Localizer<K, V>> {
