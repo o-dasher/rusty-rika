@@ -21,11 +21,12 @@ pub struct IDLockGuard<'a> {
 
 impl IDLockGuard<'_> {
     pub fn unlock(&self) -> IDLockerResult {
-        if !self.locker.0.lock().remove(&self.locking) {
-            return Err(IDLockerError::AlreadyUnlocked);
-        };
-
-        Ok(())
+        self.locker
+            .0
+            .lock()
+            .remove(&self.locking)
+            .then_some(())
+            .ok_or(IDLockerError::AlreadyUnlocked)
     }
 }
 
@@ -41,13 +42,13 @@ impl IDLocker {
     }
 
     pub fn lock(&self, locking: String) -> Result<IDLockGuard, IDLockerError> {
-        if !self.0.lock().insert(locking.clone()) {
-            return Err(IDLockerError::AlreadyLocked)?;
-        };
-
-        Ok(IDLockGuard {
-            locking,
-            locker: self,
-        })
+        self.0
+            .lock()
+            .insert(locking.clone())
+            .then(|| IDLockGuard {
+                locking,
+                locker: self,
+            })
+            .ok_or(IDLockerError::AlreadyLocked)
     }
 }
