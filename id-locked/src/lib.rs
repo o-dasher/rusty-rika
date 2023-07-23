@@ -1,8 +1,8 @@
 use std::{collections::HashSet, sync::Arc};
 
+use parking_lot::Mutex;
 use strum::Display;
 use thiserror::Error;
-use tokio::sync::Mutex;
 
 pub struct IDLocker(Arc<Mutex<HashSet<String>>>);
 
@@ -20,12 +20,18 @@ pub struct IDLockGuard<'a> {
 }
 
 impl IDLockGuard<'_> {
-    pub async fn unlock(self) -> IDLockerResult {
-        if !self.locker.0.lock().await.remove(&self.locking) {
+    pub fn unlock(&self) -> IDLockerResult {
+        if !self.locker.0.lock().remove(&self.locking) {
             return Err(IDLockerError::AlreadyUnlocked);
         };
 
         Ok(())
+    }
+}
+
+impl<'a> Drop for IDLockGuard<'a> {
+    fn drop(&mut self) {
+        let _ = self.unlock();
     }
 }
 
@@ -34,8 +40,8 @@ impl IDLocker {
         Self(Arc::new(Mutex::new(HashSet::new())))
     }
 
-    pub async fn lock(&self, locking: String) -> Result<IDLockGuard, IDLockerError> {
-        if !self.0.lock().await.insert(locking.clone()) {
+    pub fn lock(&self, locking: String) -> Result<IDLockGuard, IDLockerError> {
+        if !self.0.lock().insert(locking.clone()) {
             return Err(IDLockerError::AlreadyLocked)?;
         };
 
