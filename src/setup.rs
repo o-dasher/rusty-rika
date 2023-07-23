@@ -8,7 +8,7 @@ use poise::{
 };
 use rosu_v2::prelude::GameMode;
 use sqlx::pool::PoolOptions;
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 
 use crate::{
     error::RikaError,
@@ -52,13 +52,13 @@ pub async fn setup(
         locales,
         rosu,
         db,
+        score_submitter: Arc::new(RwLock::new(ScoreSubmitter::new())),
         beatmap_cache: BeatmapCache::new(),
-        score_submitter: Arc::new(Mutex::new(ScoreSubmitter::new())),
     });
 
     rika_data
         .score_submitter
-        .lock()
+        .write()
         .await
         .provide_data(rika_data.clone());
 
@@ -109,9 +109,8 @@ async fn background_setup(data: Arc<RikaData>) {
             let number_at = 50 * (page as usize - 1) + (i + 1);
 
             if let Ok(..) = created_user {
-                // This is blocking the score submitter, because of the lock()
                 match score_submitter
-                    .lock()
+                    .read()
                     .await
                     .submit_scores(id, mode, None)
                     .await

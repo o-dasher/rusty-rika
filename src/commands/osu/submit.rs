@@ -1,3 +1,5 @@
+use std::ops::DerefMut;
+
 use anyhow::anyhow;
 use lexicon::t;
 use roricon::RoriconTrait;
@@ -36,8 +38,7 @@ pub async fn submit(ctx: RikaContext<'_>, mode: OsuMode) -> CommandReturn {
     let (sender, mut receiver) = mpsc::channel(100);
 
     let submit_result = tokio::spawn(async move {
-        score_submitter
-            .lock()
+        score_submitter.read()
             .await
             .submit_scores(osu_id, GameMode::from(mode), sender.into())
             .await

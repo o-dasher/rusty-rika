@@ -85,7 +85,7 @@ impl ScoreSubmitter {
             SubmissionID::ByUsername(username) => rosu.user(username).await?.user_id,
         };
 
-        let locker_guard = self.locker.lock(osu_id.to_string()).await?;
+        let locker_guard = self.locker.lock(osu_id.to_string())?;
 
         let osu_scores = rosu.user_scores(osu_id).limit(100).mode(mode).await?;
 
@@ -278,7 +278,7 @@ impl ScoreSubmitter {
 
         tx.commit().await?;
 
-        locker_guard.unlock().await?;
+        locker_guard.unlock()?;
 
         Ok(())
     }

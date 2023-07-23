@@ -22,7 +22,7 @@ use setup::setup;
 use sqlx::MySqlPool;
 
 use tasks::osu::submit::ScoreSubmitter;
-use tokio::sync::Mutex;
+use tokio::sync::RwLock;
 use translations::{pt_br::locale_pt_br, rika_localizer::RikaLocalizer, RikaLocale};
 use utils::osu::BeatmapCache;
 
@@ -41,7 +41,7 @@ pub struct RikaData {
     pub locales: Localizer<RikaLocale, RikaLocalizer>,
     pub rosu: rosu_v2::Osu,
     pub beatmap_cache: BeatmapCache,
-    pub score_submitter: Arc<Mutex<ScoreSubmitter>>,
+    pub score_submitter: Arc<RwLock<ScoreSubmitter>>,
     pub db: MySqlPool,
 }
 
