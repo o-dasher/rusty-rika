@@ -20,6 +20,7 @@ pub trait RoriconMetaTrait<'a, K: Eq + Hash + Default + Copy, V: DefaultLocalize
 pub trait RoriconTrait<'a, K: Eq + Hash + Default + Copy, V: DefaultLocalizer> {
     // Acquires i18n access.
     fn i18n(&self) -> LocaleAccess<'a, Localizer<K, V>>;
+    fn i18n_explicit(&self, localizer: &'a Localizer<K, V>) -> LocaleAccess<'a, Localizer<K, V>>;
 }
 
 impl<'a, K: Eq + Hash + Default + Copy + FromStr, V: DefaultLocalizer, U, E> RoriconTrait<'a, K, V>
@@ -28,8 +29,12 @@ where
     Self: RoriconMetaTrait<'a, K, V>,
 {
     fn i18n(&self) -> LocaleAccess<'a, Localizer<K, V>> {
+            self.i18n_explicit(self.locales())
+    }
+
+    fn i18n_explicit(&self, localizer: &'a Localizer<K, V>) -> LocaleAccess<'a, Localizer<K, V>> {
         let key: K = LocaleKey::from(self.locale()).0;
-        self.locales().get(key)
+        localizer.get(key)
     }
 }
 
