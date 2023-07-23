@@ -1816,6 +1816,14 @@ dependencies = [
 name = "rika"
 version = "0.1.0"
 dependencies = [
+ "rika-poise",
+ "tokio",
+]
+
+[[package]]
+name = "rika-poise"
+version = "0.1.0"
+dependencies = [
  "anyhow",
  "bevy_reflect",
  "derive_more",
@@ -1846,6 +1854,10 @@ dependencies = [
  "tracing-subscriber",
  "tuple-map",
 ]
+
+[[package]]
+name = "rika-sql"
+version = "0.1.0"
 
 [[package]]
 name = "ring"
