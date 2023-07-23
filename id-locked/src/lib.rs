@@ -20,7 +20,7 @@ pub struct IDLockGuard<'a> {
 }
 
 impl IDLockGuard<'_> {
-    pub async fn unlock(&self) -> IDLockerResult {
+    pub async fn unlock(self) -> IDLockerResult {
         if !self.locker.0.lock().await.remove(&self.locking) {
             return Err(IDLockerError::AlreadyUnlocked);
         };

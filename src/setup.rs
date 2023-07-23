@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use id_locked::IDLocker;
 use lexicon::Localizer;
 use log::{error, info};
 use poise::{
@@ -9,11 +8,12 @@ use poise::{
 };
 use rosu_v2::prelude::GameMode;
 use sqlx::pool::PoolOptions;
+use tokio::sync::Mutex;
 
 use crate::{
     error::RikaError,
     models::osu_user::OsuUser,
-    tasks::osu::submit::submit_scores,
+    tasks::osu::submit::ScoreSubmitter,
     translations::{rika_localizer::RikaLocalizer, RikaLocale},
     utils::osu::BeatmapCache,
     RikaConfig, RikaData,
@@ -53,8 +53,14 @@ pub async fn setup(
         rosu,
         db,
         beatmap_cache: BeatmapCache::new(),
-        submit_locker: IDLocker::new(),
+        score_submitter: Arc::new(Mutex::new(ScoreSubmitter::new())),
     });
+
+    rika_data
+        .score_submitter
+        .lock()
+        .await
+        .provide_data(rika_data.clone());
 
     let cloned_data = rika_data.clone();
 
@@ -65,7 +71,11 @@ pub async fn setup(
 
 async fn background_setup(data: Arc<RikaData>) {
     let RikaData {
-        rosu, db, config, ..
+        rosu,
+        db,
+        config,
+        score_submitter,
+        ..
     } = data.as_ref();
 
     let mut scraped_modes = [GameMode::Osu, GameMode::Taiko, GameMode::Mania]
@@ -88,8 +98,6 @@ async fn background_setup(data: Arc<RikaData>) {
         };
 
         for (i, u) in rank.ranking.iter().enumerate() {
-            let data = data.clone();
-
             let id = u.user_id;
             let rosu_user = rosu.user(id).await;
 
@@ -101,7 +109,13 @@ async fn background_setup(data: Arc<RikaData>) {
             let number_at = 50 * (page as usize - 1) + (i + 1);
 
             if let Ok(..) = created_user {
-                match submit_scores(data, id, mode, None).await {
+                // This is blocking the score submitter, because of the lock()
+                match score_submitter
+                    .lock()
+                    .await
+                    .submit_scores(id, mode, None)
+                    .await
+                {
                     Ok(..) => info!("Submitted scores for top user: {id} at {number_at}"),
                     Err(e) => error!("{e:?}"),
                 };
