@@ -26,7 +26,7 @@ impl DefaultLocalizer for RikaLocalizer {
                     linked: r!(|who| "Linked to osu! account {who}"),
                 },
                 submit: Submit {
-                    submitted: r!("Submitted scores successfullty!"),
+                    submitted: r!("Submitted scores successfully!"),
                     too_long_warning: r!("This might take a while"),
                     progress_shower: r!(|(amount, out_of)| "Submitted {amount}/{out_of} scores."),
                     already_submitting: r!("Your scores are already being submitted! Please wait."),
