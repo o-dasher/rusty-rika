@@ -12,7 +12,10 @@ use rosu_pp::{
 use rosu_v2::prelude::{GameMode, Score};
 use sqlx::{MySql, QueryBuilder};
 use strum::Display;
-use tokio::sync::mpsc::Sender;
+use tokio::sync::{
+    mpsc::{self, Receiver, Sender},
+    RwLock,
+};
 
 use crate::{
     commands::{osu::RikaOsuError, CommandReturn},
@@ -39,8 +42,10 @@ pub struct ScoreSubmitter {
     locker: IDLocker,
 }
 
-// The buffer for the receiver of the messages here will always remains to be 100
-// I clearly need to redesign how this is supposed to be actually done.
+pub struct ReadyScoreSubmitter {
+    submitter: Arc<RwLock<ScoreSubmitter>>,
+    sender: Sender<(usize, usize)>,
+}
 
 impl ScoreSubmitter {
     pub fn new() -> Self {
@@ -54,11 +59,26 @@ impl ScoreSubmitter {
         self.data = Some(data);
     }
 
+    pub fn begin_submission(
+        submitter: &Arc<RwLock<ScoreSubmitter>>,
+    ) -> (ReadyScoreSubmitter, Receiver<(usize, usize)>) {
+        let (sender, receiver) = mpsc::channel(100);
+
+        (
+            ReadyScoreSubmitter {
+                submitter: submitter.clone(),
+                sender,
+            },
+            receiver,
+        )
+    }
+}
+
+impl ReadyScoreSubmitter {
     pub async fn submit_scores(
         &self,
         osu_id: impl Into<SubmissionID>,
         mode: GameMode,
-        sender: Option<Sender<(usize, usize)>>,
     ) -> CommandReturn {
         let submit_mode = match mode {
             GameMode::Osu => SubmittableMode::Osu,
@@ -67,7 +87,9 @@ impl ScoreSubmitter {
             GameMode::Catch => Err(RikaOsuError::UnsupportedMode)?,
         };
 
-        let Some(data) = &self.data else {
+        let submitter = self.submitter.read().await;
+
+        let Some(data) = &submitter.data else {
             return Err(RikaError::Fallthrough)?
         };
 
@@ -85,7 +107,7 @@ impl ScoreSubmitter {
             SubmissionID::ByUsername(username) => rosu.user(username).await?.user_id,
         };
 
-        let locker_guard = self.locker.lock(osu_id.to_string())?;
+        let locker_guard = submitter.locker.lock(osu_id.to_string())?;
 
         let osu_scores = rosu.user_scores(osu_id).limit(100).mode(mode).await?;
 
@@ -178,9 +200,7 @@ impl ScoreSubmitter {
 
                 let display_index = i + 1;
 
-                if let Some(s) = &sender {
-                    let _ = s.send((display_index, new_scores.len())).await;
-                }
+                let _ = self.sender.send((display_index, new_scores.len())).await;
 
                 info!("Processed score number {} for {osu_id}", display_index);
             }

@@ -109,10 +109,9 @@ async fn background_setup(data: Arc<RikaData>) {
             let number_at = 50 * (page as usize - 1) + (i + 1);
 
             if let Ok(..) = created_user {
-                match score_submitter
-                    .read()
-                    .await
-                    .submit_scores(id, mode, None)
+                match ScoreSubmitter::begin_submission(score_submitter)
+                    .0
+                    .submit_scores(id, mode)
                     .await
                 {
                     Ok(..) => info!("Submitted scores for top user: {id} at {number_at}"),

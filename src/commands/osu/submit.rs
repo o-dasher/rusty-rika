@@ -1,10 +1,7 @@
-use std::ops::DerefMut;
-
 use anyhow::anyhow;
-use lexicon::t;
+use lexicon::t_prefix;
 use roricon::RoriconTrait;
 use rosu_v2::prelude::GameMode;
-use tokio::sync::mpsc;
 
 use crate::{
     commands::{
@@ -12,6 +9,7 @@ use crate::{
         CommandReturn,
     },
     error::RikaError,
+    tasks::osu::submit::ScoreSubmitter,
     utils::{emojis::RikaMoji, replies::cool_text},
     RikaContext, RikaData,
 };
@@ -20,35 +18,28 @@ use crate::{
 #[poise::command(slash_command)]
 pub async fn submit(ctx: RikaContext<'_>, mode: OsuMode) -> CommandReturn {
     let i18n = ctx.i18n();
+    t_prefix!($, i18n.osu.submit);
+
     let (.., osu_id) = ctx.linked_osu_user().await?;
 
     let RikaData {
         score_submitter, ..
     } = ctx.data().as_ref();
 
-    let score_submitter = score_submitter.clone();
-
     let msg = ctx
-        .say(cool_text(
-            RikaMoji::ChocolateBar,
-            &t!(i18n.osu.submit.too_long_warning),
-        ))
+        .say(cool_text(RikaMoji::ChocolateBar, &t!(too_long_warning)))
         .await?;
 
-    let (sender, mut receiver) = mpsc::channel(100);
+    let (to_submit, mut receiver) = ScoreSubmitter::begin_submission(score_submitter);
 
-    let submit_result = tokio::spawn(async move {
-        score_submitter.read()
-            .await
-            .submit_scores(osu_id, GameMode::from(mode), sender.into())
-            .await
-    });
+    let submit_result =
+        tokio::spawn(async move { to_submit.submit_scores(osu_id, GameMode::from(mode)).await });
 
     while let Some((amount, out_of)) = receiver.recv().await {
         msg.edit(ctx, |b| {
             b.content(cool_text(
                 RikaMoji::ChocolateBar,
-                &t!(i18n.osu.submit.progress_shower).r((amount, out_of)),
+                &t!(progress_shower).r((amount, out_of)),
             ))
         })
         .await?
@@ -56,17 +47,13 @@ pub async fn submit(ctx: RikaContext<'_>, mode: OsuMode) -> CommandReturn {
 
     if let Ok(result) = submit_result.await {
         result.map_err(|e| match e {
-            RikaError::LockError(..) => {
-                anyhow!(t!(i18n.osu.submit.already_submitting).clone()).into()
-            }
+            RikaError::LockError(..) => anyhow!(t!(already_submitting).clone()).into(),
             e => e,
         })?
     }
 
-    msg.edit(ctx, |r| {
-        r.content(cool_text(RikaMoji::Ok, &t!(i18n.osu.submit.submitted)))
-    })
-    .await?;
+    msg.edit(ctx, |r| r.content(cool_text(RikaMoji::Ok, &t!(submitted))))
+        .await?;
 
     Ok(())
 }
