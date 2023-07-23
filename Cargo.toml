@@ -9,6 +9,13 @@ strip = true
 lto = true  
 codegen-units = 1
 
+[workspace]
+members = [
+    "id-locked",
+    "lexicon",
+    "roricon"
+]
+
 [dependencies]
 anyhow = "1.0.71"
 derive_more = "0.99.17"
