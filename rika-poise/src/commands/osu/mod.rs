@@ -1,6 +1,6 @@
 pub mod link;
-pub mod submit;
 pub mod recommend;
+pub mod submit;
 
 use link::link;
 use poise::{async_trait, command, ChoiceParameter};
@@ -20,9 +20,16 @@ pub async fn osu(_ctx: RikaContext<'_>) -> CommandReturn {
 #[repr(u8)]
 pub enum OsuMode {
     #[default]
+    #[name = "osu"]
     Osu = 0,
+
+    #[name = "taiko"]
     Taiko = 1,
+
+    #[name = "catch"]
     Catch = 2,
+
+    #[name = "mania"]
     Mania = 3,
 }
 
