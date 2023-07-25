@@ -9,5 +9,5 @@ edition = "2021"
 envy = "0.4.2"
 nasus = "0.2.1"
 tokio = "1.29.1"
-kani-kani = {path="./kani-kani"}
+kani-kani = { path = "../kani-kani" }
 serde = { version = "1.0.175", features = ["derive"] }
