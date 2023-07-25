@@ -1,7 +1,6 @@
 use std::sync::Arc;
+use async_callable::AsyncCallable;
 
-use async_fn_traits::AsyncFn1;
-use async_trait::async_trait;
 use itertools::Itertools;
 use nasus::{CmdIn, CmdOut, Nasus};
 use strum::Display;
@@ -16,28 +15,15 @@ pub struct KaniContext<D> {
     pub data: Arc<D>,
 }
 
-#[async_trait]
-pub trait CallableCommand<D> {
-    async fn call(&self, ctx: KaniContext<D>) -> KaniResult;
-}
-
-#[async_trait]
-impl<D: Send + Sync + 'static, T: Sync + AsyncFn1<KaniContext<D>, Output = KaniResult>>
-    CallableCommand<D> for T
-where
-    <T as AsyncFn1<KaniContext<D>>>::OutputFuture: Send + Sync,
-{
-    async fn call(&self, ctx: KaniContext<D>) -> KaniResult {
-        self(ctx).await
-    }
-}
-
 #[derive(thiserror::Error, Debug, Display)]
 pub enum WorkaroundError {
     Fucked,
 }
 
-pub type CommandDefiner<'a, D> = Vec<(Vec<&'static str>, &'a dyn CallableCommand<D>)>;
+pub type CommandDefiner<'a, D> = Vec<(
+    Vec<&'static str>,
+    &'a dyn AsyncCallable<'a, KaniContext<D>, KaniResult>,
+)>;
 
 pub struct KaniFramework<'a, D> {
     pub config: nasus::BanchoConfig,
