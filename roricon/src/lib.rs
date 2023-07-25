@@ -60,7 +60,6 @@ pub fn apply_translations<
         .store
         .0
         .keys()
-        .into_iter()
         .map(|key| (key.to_string(), localizer.get(*key)))
         .collect_vec();
 
@@ -118,7 +117,7 @@ fn apply_localization<'a, L: LocalizerTrait>(
 
             let path_string = path.iter().join(".");
 
-            (l.clone(), path_string)
+            (l, path_string)
         })
         .collect_vec();
 
@@ -154,9 +153,9 @@ fn apply_localization<'a, L: LocalizerTrait>(
     }
 }
 
-fn apply_translation<'a, L: LocalizerTrait, U, E>(
+fn apply_translation<L: LocalizerTrait, U, E>(
     commands: &mut [poise::Command<U, E>],
-    locale_accesses: &LocaleAccesses<'a, L>,
+    locale_accesses: &LocaleAccesses<'_, L>,
 ) where
     L::Key: Display,
     L::Value: Reflect,

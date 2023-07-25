@@ -69,7 +69,7 @@ impl RikaOsuContext for RikaContext<'_> {
         .await
         .map_err(|_| RikaOsuError::NotLinked)?;
 
-        let osu_id = user.osu_id.ok_or_else(|| RikaOsuError::NotLinked)?;
+        let osu_id = user.osu_id.ok_or(RikaOsuError::NotLinked)?;
 
         Ok(((), osu_id))
     }

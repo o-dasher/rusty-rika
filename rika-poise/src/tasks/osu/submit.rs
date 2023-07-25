@@ -47,6 +47,12 @@ pub struct ReadyScoreSubmitter {
     sender: Sender<(usize, usize)>,
 }
 
+impl Default for ScoreSubmitter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ScoreSubmitter {
     pub fn new() -> Self {
         Self {
@@ -135,7 +141,7 @@ impl ReadyScoreSubmitter {
                 s.score_id.and_then(|score_id| {
                     let is_new = !existing_scores.contains(&score_id);
 
-                    is_new.then(|| (score_id, s))
+                    is_new.then_some((score_id, s))
                 })
             })
             .collect_vec();

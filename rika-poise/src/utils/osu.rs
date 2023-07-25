@@ -7,6 +7,12 @@ pub struct BeatmapCache {
     pub cache: Arc<Mutex<FcHashMap<u32, Arc<[u8]>, 256>>>,
 }
 
+impl Default for BeatmapCache {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl BeatmapCache {
     pub fn new() -> Self {
         Self {
@@ -31,10 +37,11 @@ impl BeatmapCache {
         let map_bytes: Arc<[u8]> = response
             .bytes()
             .await
-            .and_then(|bytes| Ok(Vec::<u8>::from(bytes).into()))?;
+            .map(|bytes| Vec::<u8>::from(bytes).into())?;
 
         {
-            let _ = self.cache
+            let _ = self
+                .cache
                 .lock()
                 .unwrap()
                 .insert(beatmap_id, map_bytes.clone());

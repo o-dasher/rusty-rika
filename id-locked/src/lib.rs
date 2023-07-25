@@ -36,6 +36,12 @@ impl<'a> Drop for IDLockGuard<'a> {
     }
 }
 
+impl Default for IDLocker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl IDLocker {
     pub fn new() -> Self {
         Self(Arc::new(Mutex::new(HashSet::new())))
@@ -45,7 +51,7 @@ impl IDLocker {
         self.0
             .lock()
             .insert(locking.clone())
-            .then(|| IDLockGuard {
+            .then_some(IDLockGuard {
                 locking,
                 locker: self,
             })

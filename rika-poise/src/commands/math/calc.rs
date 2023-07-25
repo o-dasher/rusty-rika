@@ -21,7 +21,7 @@ pub async fn calc(
     let expression_result = exmex::eval_str::<f64>(&expression)
         .map_err(|_| anyhow!(t!(error_parse_fail).r(display_expression.clone())))?;
 
-    let display_result = mono(&expression_result.to_string());
+    let display_result = mono(expression_result.to_string());
 
     let response = t!(results_in).r((display_expression, display_result));
 
