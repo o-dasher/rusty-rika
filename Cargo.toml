@@ -16,7 +16,8 @@ members = [
     "rika-sql",
     "id-locked",
     "lexicon",
-    "roricon"
+    "roricon",
+    "async-callable"
 ]
 
 [dependencies]

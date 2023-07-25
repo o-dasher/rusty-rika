@@ -1,6 +1,6 @@
 use std::sync::Arc;
-use async_callable::AsyncCallable;
 
+use async_callable::AsyncCallable1;
 use itertools::Itertools;
 use nasus::{CmdIn, CmdOut, Nasus};
 use strum::Display;
@@ -22,7 +22,7 @@ pub enum WorkaroundError {
 
 pub type CommandDefiner<'a, D> = Vec<(
     Vec<&'static str>,
-    &'a dyn AsyncCallable<'a, KaniContext<D>, KaniResult>,
+    &'a dyn AsyncCallable1<'a, KaniContext<D>, KaniResult>,
 )>;
 
 pub struct KaniFramework<'a, D> {

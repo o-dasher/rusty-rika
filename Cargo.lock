@@ -72,6 +72,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "96d30a06541fbafbc7f82ed10c06164cfbd2c401138f6addd8404629c4b16711"
 
 [[package]]
+name = "async-callable"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "async_fn_traits",
+ "paste",
+]
+
+[[package]]
 name = "async-trait"
 version = "0.1.72"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1576,9 +1585,9 @@ dependencies = [
 
 [[package]]
 name = "paste"
-version = "1.0.13"
+version = "1.0.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4b27ab7be369122c218afc2079489cdcb4b517c0a3fc386ff11e1fedfcc2b35"
+checksum = "de3145af08024dea9fa9914f381a17b8fc6034dfb00f3a84013f7ff43f29ed4c"
 
 [[package]]
 name = "pem-rfc7468"
@@ -1846,10 +1855,8 @@ dependencies = [
 name = "rika-bancho"
 version = "0.1.0"
 dependencies = [
- "async-trait",
- "async_fn_traits",
+ "async-callable",
  "envy",
- "futures",
  "itertools 0.11.0",
  "nasus",
  "serde",
