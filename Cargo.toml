@@ -13,6 +13,7 @@ codegen-units = 1
 members = [
     "rika-poise",
     "rika-bancho",
+    "rika-bancho/kani-kani",
     "rika-sql",
     "id-locked",
     "lexicon",

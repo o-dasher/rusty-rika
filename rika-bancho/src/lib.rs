@@ -1,8 +1,6 @@
-pub mod kani;
-
 use std::vec;
 
-use kani::{KaniContext, KaniFramework, KaniResult, WorkaroundError};
+use kani_kani::{KaniContext, KaniFramework, KaniResult, WorkaroundError};
 use nasus::{BanchoConfig, CmdOut};
 use serde::Deserialize;
 
