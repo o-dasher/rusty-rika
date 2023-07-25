@@ -126,7 +126,7 @@ fn apply_localization<'a, L: LocalizerTrait>(
     let permutations = iproduct!(&locale_accesses.0, &locale_tags);
 
     for ((lang_key, access), (locale_type, tag)) in permutations {
-        let possible_resource = access.rs::<R>(&tag);
+        let possible_resource = access.rs::<R>(tag);
 
         let Some(localized_key) = possible_resource else {
                 continue;

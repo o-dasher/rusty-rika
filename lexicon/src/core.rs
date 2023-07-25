@@ -143,7 +143,7 @@ where
     /// Returns a wrapper for the localizer that provides access to the localizer for a given locale.
     pub fn get(&self, locale: impl Into<K>) -> LocaleAccess<Self> {
         LocaleAccess {
-            localizer: &self,
+            localizer: self,
             to: self.ref_any(&locale.into()),
         }
     }
