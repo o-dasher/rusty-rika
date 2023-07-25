@@ -9,7 +9,6 @@ pub mod utils;
 use std::sync::Arc;
 
 use commands::{math::math, osu::osu, owner::owner, rate::rate, user::user};
-use dotenvy::dotenv;
 use error::RikaError;
 use lexicon::Localizer;
 use log::error;
@@ -53,11 +52,10 @@ impl<'a> RoriconMetaTrait<'a, RikaLocale, RikaLocalizer> for RikaContext<'a> {
     }
 }
 
-pub async fn run() {
-    dotenv().ok();
+pub async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     tracing_subscriber::fmt().with_target(true).pretty().init();
 
-    let config = envy::from_env::<RikaConfig>().expect("Environment variables must be set");
+    let config = envy::from_env::<RikaConfig>()?;
 
     let mut commands = vec![user(), owner(), math(), rate(), osu()];
     let locales = Localizer::new(vec![(RikaLocale::BrazilianPortuguese, locale_pt_br)]);
@@ -76,6 +74,7 @@ pub async fn run() {
             Box::pin(async move { setup(ctx, framework, locales, config).await })
         })
         .run()
-        .await
-        .expect("Failed to run bot");
+        .await?;
+
+    Ok(())
 }

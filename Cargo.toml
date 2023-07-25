@@ -12,6 +12,7 @@ codegen-units = 1
 [workspace]
 members = [
     "rika-poise",
+    "rika-bancho",
     "rika-sql",
     "id-locked",
     "lexicon",
@@ -21,4 +22,6 @@ members = [
 [dependencies]
 tokio = "1.29.1"
 rika-poise = {path="./rika-poise"}
+rika-bancho = {path="./rika-bancho"}
+dotenvy = "0.15.7"
 
