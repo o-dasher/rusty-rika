@@ -1,7 +1,13 @@
+pub mod commands;
+pub mod error;
+
 use std::vec;
 
-use kani_kani::{KaniContext, KaniFramework, KaniResult, WorkaroundError};
-use nasus::{BanchoConfig, CmdOut};
+use commands::owo::owo;
+
+use error::handle_error;
+use kani_kani::{BoxedError, KaniContext, KaniFramework};
+use nasus::BanchoConfig;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -14,25 +20,11 @@ struct RikaBanchoConfig {
     prefix: String,
 }
 
-pub struct KaniCommand();
 pub struct RikaKaniData {}
 
 pub type RikaKaniContext = KaniContext<RikaKaniData>;
 
-async fn owo(RikaKaniContext { irc, sender, .. }: RikaKaniContext) -> KaniResult {
-    irc.lock()
-        .await
-        .write_command(CmdOut::SendPM {
-            receiver: sender,
-            message: "OWO".to_string(),
-        })
-        .await
-        .map_err(|_| WorkaroundError::Fucked)?;
-
-    Ok(())
-}
-
-pub async fn run() -> KaniResult {
+pub async fn run() -> Result<(), BoxedError> {
     let config = envy::prefixed("BANCHO_").from_env::<RikaBanchoConfig>()?;
 
     let bancho_config = BanchoConfig {
@@ -48,6 +40,7 @@ pub async fn run() -> KaniResult {
         data: RikaKaniData {},
         prefix: config.prefix,
         commands: vec![(vec!["owo"], &owo)],
+        on_error: &handle_error,
     };
 
     kani_kani.run().await?;

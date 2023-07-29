@@ -1,6 +1,4 @@
-
-
-use std::sync::Arc;
+use std::{error::Error, sync::Arc};
 
 use async_callable::AsyncCallable1;
 use itertools::Itertools;
@@ -8,7 +6,23 @@ use nasus::{CmdIn, CmdOut, Nasus};
 use strum::Display;
 use tokio::sync::Mutex;
 
-pub type KaniResult = Result<(), Box<dyn std::error::Error + Sync + Send>>;
+pub type BoxedError = Box<dyn std::error::Error + Sync + Send>;
+
+#[derive(thiserror::Error, Debug, Display)]
+pub enum KaniError<E> {
+    #[error(transparent)]
+    CommandError(E),
+
+    #[error(transparent)]
+    OutputError(E),
+
+    #[error(transparent)]
+    SetupError(BoxedError),
+
+    Fucked,
+}
+
+pub type KaniResult<E> = Result<(), KaniError<E>>;
 
 pub struct KaniContext<D> {
     pub irc: Arc<Mutex<Nasus>>,
@@ -17,32 +31,31 @@ pub struct KaniContext<D> {
     pub data: Arc<D>,
 }
 
-#[derive(thiserror::Error, Debug, Display)]
-pub enum WorkaroundError {
-    Fucked,
-}
-
-pub type CommandDefiner<'a, D> = Vec<(
+pub type CommandDefiner<'a, D, E> = Vec<(
     Vec<&'static str>,
-    &'a dyn AsyncCallable1<'a, KaniContext<D>, KaniResult>,
+    &'a dyn AsyncCallable1<'a, KaniContext<D>, Result<(), E>>,
 )>;
 
-pub struct KaniFramework<'a, D> {
+pub type OnErrorHandler<'a, E> = &'a dyn AsyncCallable1<'a, KaniError<E>, Result<(), E>>;
+
+pub struct KaniFramework<'a, D, E> {
     pub config: nasus::BanchoConfig,
     pub data: D,
     pub prefix: String,
-    pub commands: CommandDefiner<'a, D>,
+    pub commands: CommandDefiner<'a, D, E>,
+    pub on_error: OnErrorHandler<'a, E>,
 }
 
-pub struct KaniWorker<'a, D> {
+pub struct KaniWorker<'a, D, E> {
     pub irc: Arc<Mutex<Nasus>>,
     pub data: Arc<D>,
     pub prefix: String,
-    pub commands: CommandDefiner<'a, D>,
+    pub commands: CommandDefiner<'a, D, E>,
+    pub on_error: OnErrorHandler<'a, E>,
 }
 
-impl<'a, D> KaniWorker<'a, D> {
-    async fn handle_input(&self, cmd_in: CmdIn) -> KaniResult {
+impl<'a, D, E> KaniWorker<'a, D, E> {
+    async fn handle_input(&self, cmd_in: CmdIn) -> Result<(), E> {
         let CmdIn::ReceivePM { sender,  message, .. } = cmd_in else {
             return Ok(());
         };
@@ -81,41 +94,46 @@ impl<'a, D> KaniWorker<'a, D> {
         Ok(())
     }
 
-    async fn handle_output(&self, _cmd_out: CmdOut) -> KaniResult {
+    async fn handle_output(&self, _cmd_out: CmdOut) -> Result<(), E> {
         Ok(())
     }
 }
 
-impl<'a, D> KaniFramework<'a, D> {
-    pub async fn run(self) -> KaniResult {
-        let kani_irc = Arc::new(Mutex::new(
-            Nasus::new(self.config)
-                .await
-                .map_err(|_| WorkaroundError::Fucked)?,
-        ));
+impl<'a, D, E: Error + Send + Sync + 'static> KaniFramework<'a, D, E> {
+    pub async fn run(self) -> KaniResult<E> {
+        let kani_irc =
+            Arc::new(Mutex::new(Nasus::new(self.config).await.map_err(|_| {
+                KaniError::SetupError(Box::new(KaniError::<E>::Fucked)).into()
+            })?));
 
         let kani_worker = KaniWorker {
             irc: kani_irc.clone(),
             data: Arc::new(self.data),
             prefix: self.prefix,
             commands: self.commands,
+            on_error: self.on_error,
         };
 
         loop {
             let (last_input, last_output) = {
                 let mut locking = kani_irc.lock().await;
 
-                locking.work().await.map_err(|_| WorkaroundError::Fucked)?;
+                locking.work().await.map_err(|_| KaniError::Fucked)?;
 
                 (locking.inputs.pop(), locking.outputs.pop())
             };
 
             if let Some(last_input) = last_input {
-                kani_worker.handle_input(last_input).await?;
+                if let Err(e) = kani_worker.handle_input(last_input).await {
+                    // handle error handling error must.
+                    let _ = kani_worker.on_error.call(KaniError::CommandError(e)).await;
+                }
             }
 
             if let Some(last_output) = last_output {
-                kani_worker.handle_output(last_output).await?;
+                if let Err(e) = kani_worker.handle_output(last_output).await {
+                    let _ = kani_worker.on_error.call(KaniError::OutputError(e)).await;
+                }
             };
         }
     }

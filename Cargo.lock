@@ -1867,10 +1867,13 @@ dependencies = [
 name = "rika-bancho"
 version = "0.1.0"
 dependencies = [
+ "derive_more",
  "envy",
  "kani-kani",
  "nasus",
  "serde",
+ "strum",
+ "thiserror",
  "tokio",
 ]
 
