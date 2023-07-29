@@ -1,13 +1,13 @@
 pub mod commands;
 pub mod error;
 
-use std::vec;
+use std::{sync::Arc, vec};
 
-use commands::owo::owo;
-
+use commands::submit::submit;
 use error::handle_error;
 use kani_kani::{BoxedError, KaniContext, KaniFramework};
 use nasus::BanchoConfig;
+use rika_model::SharedRika;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -20,10 +20,13 @@ struct RikaConfig {
     prefix: String,
 }
 
-pub struct RikaData {}
+pub struct RikaData {
+    shared: Arc<SharedRika>,
+}
+
 pub type RikaContext = KaniContext<RikaData>;
 
-pub async fn run() -> Result<(), BoxedError> {
+pub async fn run(shared: Arc<SharedRika>) -> Result<(), BoxedError> {
     let config = envy::prefixed("BANCHO_").from_env::<RikaConfig>()?;
 
     let bancho_config = BanchoConfig {
@@ -34,11 +37,13 @@ pub async fn run() -> Result<(), BoxedError> {
         irc_token: config.irc_token,
     };
 
+    let data = RikaData { shared };
+
     let kani_kani = KaniFramework {
         config: bancho_config,
-        data: RikaData {},
+        data,
         prefix: config.prefix,
-        commands: vec![(vec!["owo"], &owo)],
+        commands: vec![(vec!["owo"], &submit)],
         on_error: &handle_error,
     };
 

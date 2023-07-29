@@ -21,7 +21,7 @@ pub async fn setup(
     framework: &Framework<Arc<RikaData>, RikaError>,
     locales: Localizer<RikaLocale, RikaLocalizer>,
     config: RikaConfig,
-    shared_rika: Arc<SharedRika>,
+    shared: Arc<SharedRika>,
 ) -> Result<Arc<RikaData>, RikaError> {
     let to_register = &framework.options().commands;
 
@@ -31,18 +31,12 @@ pub async fn setup(
         }
         None => poise::builtins::register_globally(ctx, to_register).await?,
     }
+
     let rika_data = Arc::new(RikaData {
         config,
         locales,
-        shared: shared_rika,
+        shared,
     });
-
-    rika_data
-        .shared
-        .score_submitter
-        .write()
-        .await
-        .provide_data(rika_data.shared.clone());
 
     let cloned_data = rika_data.clone();
 

@@ -1,8 +1,13 @@
+use kani_kani::KaniContext;
 use nasus::CmdOut;
 
-use crate::{error::RikaBanchoError, RikaContext};
+use crate::{error::RikaBanchoError, RikaData};
 
-pub async fn owo(RikaContext { irc, sender, .. }: RikaContext) -> Result<(), RikaBanchoError> {
+pub async fn submit(
+    KaniContext {
+        irc, sender, data, ..
+    }: KaniContext<RikaData>,
+) -> Result<(), RikaBanchoError> {
     irc.lock()
         .await
         .write_command(CmdOut::SendPM {

@@ -42,7 +42,16 @@ pub async fn main() {
         score_submitter: Arc::new(RwLock::new(ScoreSubmitter::new())),
     });
 
-    let result_work = try_join!(rika_bancho::run(), rika_poise::run(shared_data.clone()));
+    shared_data
+        .score_submitter
+        .write()
+        .await
+        .provide_data(shared_data.clone());
+
+    let result_work = try_join!(
+        rika_bancho::run(shared_data.clone()),
+        rika_poise::run(shared_data.clone())
+    );
 
     if let Err(e) = result_work {
         println!("{e:?}")
