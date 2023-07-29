@@ -1,10 +1,8 @@
 use nasus::CmdOut;
 
-use crate::{error::RikaBanchoError, RikaKaniContext};
+use crate::{error::RikaBanchoError, RikaContext};
 
-pub async fn owo(
-    RikaKaniContext { irc, sender, .. }: RikaKaniContext,
-) -> Result<(), RikaBanchoError> {
+pub async fn owo(RikaContext { irc, sender, .. }: RikaContext) -> Result<(), RikaBanchoError> {
     irc.lock()
         .await
         .write_command(CmdOut::SendPM {

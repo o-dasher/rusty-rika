@@ -11,7 +11,7 @@ use nasus::BanchoConfig;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
-struct RikaBanchoConfig {
+struct RikaConfig {
     host: String,
     port: u16,
     bot: bool,
@@ -20,12 +20,11 @@ struct RikaBanchoConfig {
     prefix: String,
 }
 
-pub struct RikaKaniData {}
-
-pub type RikaKaniContext = KaniContext<RikaKaniData>;
+pub struct RikaData {}
+pub type RikaContext = KaniContext<RikaData>;
 
 pub async fn run() -> Result<(), BoxedError> {
-    let config = envy::prefixed("BANCHO_").from_env::<RikaBanchoConfig>()?;
+    let config = envy::prefixed("BANCHO_").from_env::<RikaConfig>()?;
 
     let bancho_config = BanchoConfig {
         host: config.host,
@@ -37,7 +36,7 @@ pub async fn run() -> Result<(), BoxedError> {
 
     let kani_kani = KaniFramework {
         config: bancho_config,
-        data: RikaKaniData {},
+        data: RikaData {},
         prefix: config.prefix,
         commands: vec![(vec!["owo"], &owo)],
         on_error: &handle_error,
