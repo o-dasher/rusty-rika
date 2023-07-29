@@ -9,6 +9,7 @@ use derive_more::From;
 use id_locked::IDLockerError;
 use log::error;
 use poise::serenity_prelude;
+use rika_model::osu::submit::SubmissionError;
 use rosu_v2::prelude::OsuError;
 use strum::Display;
 
@@ -22,6 +23,7 @@ pub enum RikaError {
     Rosu(rosu_pp::ParseError),
     RikaOsu(RikaOsuError),
     LockError(IDLockerError),
+    Submission(SubmissionError),
 
     Fallthrough,
 }

@@ -103,7 +103,7 @@ impl<'a, D, E: Error + Send + Sync + 'static> KaniFramework<'a, D, E> {
     pub async fn run(self) -> KaniResult<E> {
         let kani_irc =
             Arc::new(Mutex::new(Nasus::new(self.config).await.map_err(|_| {
-                KaniError::SetupError(Box::new(KaniError::<E>::Fucked)).into()
+                KaniError::SetupError(Box::new(KaniError::<E>::Fucked))
             })?));
 
         let kani_worker = KaniWorker {

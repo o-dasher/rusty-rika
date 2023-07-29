@@ -16,6 +16,7 @@ serde = { version = "1.0.167", features = ["derive"] }
 strum = { version = "0.25.0", features = ["derive", "strum_macros"] }
 tokio = { version = "1.29.1", features = ["full"] }
 nestruct = "0.1.0"
+rika-model = {path="../rika-model"}
 lexicon = {path = "../lexicon" }
 roricon = {path = "../roricon" }
 id-locked = {path = "../id-locked" }

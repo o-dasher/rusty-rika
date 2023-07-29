@@ -1,5 +1,6 @@
 use anyhow::anyhow;
 use lexicon::t_prefix;
+use rika_model::SharedRika;
 use roricon::RoriconTrait;
 
 use crate::{
@@ -14,7 +15,8 @@ pub async fn link(ctx: RikaContext<'_>, name: String) -> CommandReturn {
     let i18n = ctx.i18n();
     t_prefix!($, i18n.osu.link);
 
-    let RikaData { rosu, db, .. } = ctx.data().as_ref();
+    let RikaData { shared, .. } = ctx.data().as_ref();
+    let SharedRika { db, rosu, .. } = shared.as_ref();
 
     let osu_user = rosu
         .user(&name)

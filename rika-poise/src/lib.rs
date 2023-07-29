@@ -2,7 +2,6 @@ pub mod commands;
 pub mod error;
 pub mod models;
 pub mod setup;
-pub mod tasks;
 pub mod translations;
 pub mod utils;
 
@@ -14,34 +13,24 @@ use lexicon::Localizer;
 use log::error;
 
 use poise::{futures_util::TryFutureExt, serenity_prelude::GatewayIntents, FrameworkOptions};
+use rika_model::SharedRika;
 use roricon::{apply_translations, RoriconMetaTrait};
 
 use serde::Deserialize;
 use setup::setup;
-use sqlx::MySqlPool;
-
-use tasks::osu::submit::ScoreSubmitter;
-use tokio::sync::RwLock;
 use translations::{pt_br::locale_pt_br, rika_localizer::RikaLocalizer, RikaLocale};
-use utils::osu::BeatmapCache;
 
 #[derive(Deserialize)]
 pub struct RikaConfig {
     bot_token: String,
     development_guild: Option<u64>,
-    osu_client_id: u64,
-    osu_client_secret: String,
-    database_url: String,
     scraped_country: String,
 }
 
 pub struct RikaData {
     pub config: RikaConfig,
+    pub shared: Arc<SharedRika>,
     pub locales: Localizer<RikaLocale, RikaLocalizer>,
-    pub rosu: rosu_v2::Osu,
-    pub beatmap_cache: BeatmapCache,
-    pub score_submitter: Arc<RwLock<ScoreSubmitter>>,
-    pub db: MySqlPool,
 }
 
 pub type RikaContext<'a> = poise::Context<'a, Arc<RikaData>, RikaError>;
@@ -52,7 +41,9 @@ impl<'a> RoriconMetaTrait<'a, RikaLocale, RikaLocalizer> for RikaContext<'a> {
     }
 }
 
-pub async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+pub async fn run(
+    shared_rika: Arc<SharedRika>,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     tracing_subscriber::fmt().with_target(true).pretty().init();
 
     let config = envy::from_env::<RikaConfig>()?;
@@ -71,7 +62,7 @@ pub async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         .token(&config.bot_token)
         .intents(GatewayIntents::non_privileged())
         .setup(move |ctx, _ready, framework| {
-            Box::pin(async move { setup(ctx, framework, locales, config).await })
+            Box::pin(async move { setup(ctx, framework, locales, config, shared_rika).await })
         })
         .run()
         .await?;

@@ -11,18 +11,24 @@ codegen-units = 1
 
 [workspace]
 members = [
-    "rika-poise",
-    "rika-bancho",
-    "rika-sql",
-    "kani-kani",
-    "id-locked",
-    "lexicon",
-    "roricon",
-    "async-callable",
+  "rika-poise",
+  "rika-bancho",
+  "rika-model",
+  "rika-sql",
+  "kani-kani",
+  "id-locked",
+  "lexicon",
+  "roricon",
+  "async-callable",
 ]
 
 [dependencies]
 tokio = "1.29.1"
 rika-poise = { path = "./rika-poise" }
 rika-bancho = { path = "./rika-bancho" }
+rika-model = { path = "./rika-model/" }
 dotenvy = "0.15.7"
+sqlx = "0.7.1"
+rosu-v2 = "0.8.0"
+envy = "0.4.2"
+serde = { version = "1.0.178", features = ["derive"] }

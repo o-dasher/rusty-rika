@@ -5,6 +5,7 @@ pub mod submit;
 use link::link;
 use poise::{async_trait, command, ChoiceParameter};
 use recommend::recommend;
+use rika_model::SharedRika;
 use rosu_v2::prelude::GameMode;
 use sqlx::Result;
 use submit::submit;
@@ -59,7 +60,8 @@ pub trait RikaOsuContext {
 #[async_trait]
 impl RikaOsuContext for RikaContext<'_> {
     async fn linked_osu_user(&self) -> Result<((), u32), RikaOsuError> {
-        let RikaData { db, .. } = self.data().as_ref();
+        let RikaData { shared, .. } = self.data().as_ref();
+        let SharedRika { db, .. } = shared.as_ref();
 
         let user = sqlx::query!(
             "SELECT * FROM rika_user WHERE discord_id=?",

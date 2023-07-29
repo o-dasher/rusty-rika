@@ -1,5 +1,9 @@
 use anyhow::anyhow;
 use lexicon::t_prefix;
+use rika_model::{
+    osu::submit::{ScoreSubmitter, SubmissionError},
+    SharedRika,
+};
 use roricon::RoriconTrait;
 use rosu_v2::prelude::GameMode;
 
@@ -8,8 +12,6 @@ use crate::{
         osu::{OsuMode, RikaOsuContext},
         CommandReturn,
     },
-    error::RikaError,
-    tasks::osu::submit::ScoreSubmitter,
     utils::{emojis::RikaMoji, replies::cool_text},
     RikaContext, RikaData,
 };
@@ -22,15 +24,16 @@ pub async fn submit(ctx: RikaContext<'_>, mode: OsuMode) -> CommandReturn {
 
     let (.., osu_id) = ctx.linked_osu_user().await?;
 
-    let RikaData {
+    let RikaData { shared, .. } = ctx.data().as_ref();
+    let SharedRika {
         score_submitter, ..
-    } = ctx.data().as_ref();
+    } = shared.as_ref();
 
     let msg = ctx
         .say(cool_text(RikaMoji::ChocolateBar, &t!(too_long_warning)))
         .await?;
 
-    let (to_submit, mut receiver) = ScoreSubmitter::begin_submission(score_submitter);
+    let (to_submit, mut receiver) = ScoreSubmitter::begin_submission(&score_submitter);
 
     let submit_result =
         tokio::spawn(async move { to_submit.submit_scores(osu_id, GameMode::from(mode)).await });
@@ -47,7 +50,7 @@ pub async fn submit(ctx: RikaContext<'_>, mode: OsuMode) -> CommandReturn {
 
     if let Ok(result) = submit_result.await {
         result.map_err(|e| match e {
-            RikaError::LockError(..) => anyhow!(t!(already_submitting).clone()).into(),
+            SubmissionError::IdLocker(..) => anyhow!(t!(already_submitting).clone()).into(),
             e => e,
         })?
     }

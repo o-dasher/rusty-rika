@@ -95,16 +95,14 @@ macro_rules! reply_recommendation {
 
 #[macro_export]
 macro_rules! init_recommendation {
-    ($dollar:tt, $ctx:expr, $range:expr, $mode:ident) => {
+    ($dollar:tt, $db:expr, $ctx:expr, $range:expr, $mode:ident) => {
         let i18n = $ctx.i18n();
         t_prefix!($dollar, i18n.osu.recommend);
-
-        let RikaData { db, .. } = $ctx.data().as_ref();
 
         let range = $range.unwrap_or(0.3);
         let (.., osu_id) = $ctx.linked_osu_user().await?;
 
-        create_weighter!(fetch_performance!($mode, osu_id, db), range);
+        create_weighter!(fetch_performance!($mode, osu_id, $db), range);
     };
 }
 

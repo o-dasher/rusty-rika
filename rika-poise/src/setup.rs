@@ -6,16 +6,13 @@ use poise::{
     serenity_prelude::{self, GuildId},
     Framework,
 };
+use rika_model::{osu::submit::ScoreSubmitter, SharedRika};
 use rosu_v2::prelude::GameMode;
-use sqlx::pool::PoolOptions;
-use tokio::sync::RwLock;
 
 use crate::{
     error::RikaError,
     models::osu_user::OsuUser,
-    tasks::osu::submit::ScoreSubmitter,
     translations::{rika_localizer::RikaLocalizer, RikaLocale},
-    utils::osu::BeatmapCache,
     RikaConfig, RikaData,
 };
 
@@ -24,6 +21,7 @@ pub async fn setup(
     framework: &Framework<Arc<RikaData>, RikaError>,
     locales: Localizer<RikaLocale, RikaLocalizer>,
     config: RikaConfig,
+    shared_rika: Arc<SharedRika>,
 ) -> Result<Arc<RikaData>, RikaError> {
     let to_register = &framework.options().commands;
 
@@ -33,34 +31,18 @@ pub async fn setup(
         }
         None => poise::builtins::register_globally(ctx, to_register).await?,
     }
-
-    let rosu = rosu_v2::Osu::builder()
-        .client_id(config.osu_client_id)
-        .client_secret(&config.osu_client_secret)
-        .build()
-        .await
-        .expect("Failed to connect to osu! api");
-
-    let db = PoolOptions::new()
-        .max_connections(10)
-        .connect(&config.database_url)
-        .await
-        .expect("Failed to connect to database!");
-
     let rika_data = Arc::new(RikaData {
         config,
         locales,
-        rosu,
-        db,
-        score_submitter: Arc::new(RwLock::new(ScoreSubmitter::new())),
-        beatmap_cache: BeatmapCache::new(),
+        shared: shared_rika,
     });
 
     rika_data
+        .shared
         .score_submitter
         .write()
         .await
-        .provide_data(rika_data.clone());
+        .provide_data(rika_data.shared.clone());
 
     let cloned_data = rika_data.clone();
 
@@ -70,13 +52,13 @@ pub async fn setup(
 }
 
 async fn background_setup(data: Arc<RikaData>) {
-    let RikaData {
-        rosu,
+    let RikaData { config, shared, .. } = data.as_ref();
+    let SharedRika {
         db,
-        config,
+        rosu,
         score_submitter,
         ..
-    } = data.as_ref();
+    } = shared.as_ref();
 
     let mut scraped_modes = [GameMode::Osu, GameMode::Taiko, GameMode::Mania]
         .into_iter()

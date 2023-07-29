@@ -6,6 +6,7 @@ use crate::{
 use anyhow::anyhow;
 use lexicon::t_prefix;
 use paste::paste;
+use rika_model::SharedRika;
 use roricon::RoriconTrait;
 use rosu_v2::prelude::GameMods;
 
@@ -21,9 +22,10 @@ use crate::{
 
 #[poise::command(slash_command)]
 pub async fn taiko(ctx: RikaContext<'_>, range: Option<f32>) -> CommandReturn {
-    let RikaData { db, .. } = ctx.data().as_ref();
+    let RikaData { shared, .. } = ctx.data().as_ref();
+    let SharedRika { db, .. } = shared.as_ref();
 
-    init_recommendation!($, ctx, range, Taiko);
+    init_recommendation!($, db, ctx, range, Taiko);
 
     let (min_acc, max_acc) = apply_weight!(accuracy);
     let (min_diff, max_diff) = apply_weight!(difficulty);
@@ -36,7 +38,6 @@ pub async fn taiko(ctx: RikaContext<'_>, range: Option<f32>) -> CommandReturn {
             ("difficulty", (min_diff, max_diff)),
         ],
     );
-    
 
     reply_recommendation!(ctx, recommendation);
 

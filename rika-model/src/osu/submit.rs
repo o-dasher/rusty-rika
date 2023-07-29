@@ -1,9 +1,8 @@
 use std::{collections::HashSet, sync::Arc};
 
 use derive_more::From;
-use id_locked::IDLocker;
+use id_locked::{IDLocker, IDLockerError};
 use itertools::Itertools;
-use log::info;
 use paste::paste;
 use rosu_pp::{
     mania::ManiaPerformanceAttributes, osu::OsuPerformanceAttributes,
@@ -17,11 +16,9 @@ use tokio::sync::{
     RwLock,
 };
 
-use crate::{
-    commands::{osu::RikaOsuError, CommandReturn},
-    error::RikaError,
-    RikaData,
-};
+use crate::SharedRika;
+
+use super::beatmap::BeatmapCacheError;
 
 #[derive(From)]
 pub enum SubmissionID {
@@ -38,7 +35,7 @@ enum SubmittableMode {
 }
 
 pub struct ScoreSubmitter {
-    data: Option<Arc<RikaData>>,
+    data: Option<Arc<SharedRika>>,
     locker: IDLocker,
 }
 
@@ -53,6 +50,18 @@ impl Default for ScoreSubmitter {
     }
 }
 
+#[derive(thiserror::Error, Debug, Display, derive_more::From)]
+pub enum SubmissionError {
+    UnsupportedMode,
+    MissingDependencies,
+    Sqlx(sqlx::Error),
+    IdLocker(IDLockerError),
+    RosuV2(rosu_v2::error::OsuError),
+    RosuPP(rosu_pp::ParseError),
+    FetchBeatmap(BeatmapCacheError),
+    Anyhow(anyhow::Error),
+}
+
 impl ScoreSubmitter {
     pub fn new() -> Self {
         Self {
@@ -61,7 +70,7 @@ impl ScoreSubmitter {
         }
     }
 
-    pub fn provide_data(&mut self, data: Arc<RikaData>) {
+    pub fn provide_data(&mut self, data: Arc<SharedRika>) {
         self.data = Some(data);
     }
 
@@ -85,21 +94,21 @@ impl ReadyScoreSubmitter {
         &self,
         osu_id: impl Into<SubmissionID>,
         mode: GameMode,
-    ) -> CommandReturn {
+    ) -> Result<(), SubmissionError> {
         let submit_mode = match mode {
             GameMode::Osu => SubmittableMode::Osu,
             GameMode::Taiko => SubmittableMode::Taiko,
             GameMode::Mania => SubmittableMode::Mania,
-            GameMode::Catch => Err(RikaOsuError::UnsupportedMode)?,
+            GameMode::Catch => Err(SubmissionError::UnsupportedMode)?,
         };
 
         let submitter = self.submitter.read().await;
 
         let Some(data) = &submitter.data else {
-            return Err(RikaError::Fallthrough)?
+            return Err(SubmissionError::MissingDependencies)?
         };
 
-        let RikaData {
+        let SharedRika {
             db,
             rosu,
             beatmap_cache,
@@ -207,8 +216,6 @@ impl ReadyScoreSubmitter {
                 let display_index = i + 1;
 
                 let _ = self.sender.send((display_index, new_scores.len())).await;
-
-                info!("Processed score number {} for {osu_id}", display_index);
             }
         }
 
