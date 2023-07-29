@@ -43,7 +43,7 @@ pub async fn run(shared: Arc<SharedRika>) -> Result<(), BoxedError> {
         config: bancho_config,
         data,
         prefix: config.prefix,
-        commands: vec![(vec!["owo"], &submit)],
+        commands: vec![(vec!["submit"], &submit)],
         on_error: &handle_error,
     };
 

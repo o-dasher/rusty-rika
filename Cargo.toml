@@ -29,6 +29,6 @@ rika-bancho = { path = "./rika-bancho" }
 rika-model = { path = "./rika-model/" }
 dotenvy = "0.15.7"
 sqlx = "0.7.1"
-rosu-v2 = "0.8.0"
 envy = "0.4.2"
 serde = { version = "1.0.178", features = ["derive"] }
+rosu-v2 = "0.8.0"

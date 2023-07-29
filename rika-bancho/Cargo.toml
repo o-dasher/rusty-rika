@@ -15,3 +15,5 @@ serde = { version = "1.0.175", features = ["derive"] }
 thiserror = "1.0.44"
 strum = { version = "0.25.0", features = ["derive", "strum_macros"] }
 derive_more = "0.99.17"
+rosu-v2 = "0.8.0"
+anyhow = "1.0.72"

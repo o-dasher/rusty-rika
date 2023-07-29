@@ -31,6 +31,20 @@ pub struct KaniContext<D> {
     pub data: Arc<D>,
 }
 
+impl<D> KaniContext<D> {
+    pub async fn say(&self, text: &str) -> Result<(), Box<dyn Error>> {
+        let Self { sender, irc, .. } = self;
+
+        irc.lock()
+            .await
+            .write_command(CmdOut::SendPM {
+                receiver: sender.to_string(),
+                message: text.to_string(),
+            })
+            .await
+    }
+}
+
 pub type CommandDefiner<'a, D, E> = Vec<(
     Vec<&'static str>,
     &'a dyn AsyncCallable1<'a, KaniContext<D>, Result<(), E>>,

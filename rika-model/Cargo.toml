@@ -10,7 +10,7 @@ id-locked = {path="../id-locked"}
 derive_more = "0.99.17"
 itertools = "0.11.0"
 rosu-pp = { version = "0.9.4", features = ["async_tokio"] }
-sqlx = { version = "0.7.1", features = ["time"] }
+sqlx = { version = "0.7.1", features = ["time", "sqlx-mysql", "mysql", "runtime-tokio-rustls"] }
 strum = { version = "0.25.0", features = ["derive", "strum_macros"] }
 paste = "1.0.14"
 rosu-v2 = "0.8.0"

@@ -28,10 +28,33 @@ pub enum SubmissionID {
 
 #[derive(Display)]
 #[strum(serialize_all = "lowercase")]
-enum SubmittableMode {
+pub enum SubmittableMode {
     Osu,
     Taiko,
     Mania,
+}
+
+impl TryFrom<GameMode> for SubmittableMode {
+    type Error = SubmissionError;
+
+    fn try_from(value: GameMode) -> Result<Self, Self::Error> {
+        match value {
+            GameMode::Osu => Ok(Self::Osu),
+            GameMode::Taiko => Ok(Self::Taiko),
+            GameMode::Mania => Ok(Self::Mania),
+            GameMode::Catch => Err(SubmissionError::UnsupportedMode),
+        }
+    }
+}
+
+impl From<SubmittableMode> for GameMode {
+    fn from(val: SubmittableMode) -> Self {
+        match val {
+            SubmittableMode::Osu => Self::Osu,
+            SubmittableMode::Taiko => Self::Taiko,
+            SubmittableMode::Mania => Self::Mania,
+        }
+    }
 }
 
 pub struct ScoreSubmitter {
@@ -95,12 +118,7 @@ impl ReadyScoreSubmitter {
         osu_id: impl Into<SubmissionID>,
         mode: GameMode,
     ) -> Result<(), SubmissionError> {
-        let submit_mode = match mode {
-            GameMode::Osu => SubmittableMode::Osu,
-            GameMode::Taiko => SubmittableMode::Taiko,
-            GameMode::Mania => SubmittableMode::Mania,
-            GameMode::Catch => Err(SubmissionError::UnsupportedMode)?,
-        };
+        let submit_mode = SubmittableMode::try_from(mode)?;
 
         let submitter = self.submitter.read().await;
 
