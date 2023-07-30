@@ -11,6 +11,7 @@ nasus = "0.2.1"
 tokio = "1.29.1"
 kani-kani = { path = "../kani-kani" }
 rika-model = { path = "../rika-model" }
+lexicon = { path = "../lexicon" }
 serde = { version = "1.0.175", features = ["derive"] }
 thiserror = "1.0.44"
 strum = { version = "0.25.0", features = ["derive", "strum_macros"] }

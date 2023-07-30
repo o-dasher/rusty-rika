@@ -6,8 +6,12 @@ use std::{sync::Arc, vec};
 use commands::submit::submit;
 use error::handle_error;
 use kani_kani::{BoxedError, KaniContext, KaniFramework};
+use lexicon::{LocaleAccess, Localizer};
 use nasus::BanchoConfig;
-use rika_model::SharedRika;
+use rika_model::{
+    i18n::{rika_localizer::RikaLocalizer, RikaLocale},
+    SharedRika,
+};
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -50,4 +54,17 @@ pub async fn run(shared: Arc<SharedRika>) -> Result<(), BoxedError> {
     kani_kani.run().await?;
 
     Ok(())
+}
+
+pub trait KaniLocale {
+    fn i18n(&self) -> LocaleAccess<Localizer<RikaLocale, RikaLocalizer>>;
+}
+
+impl KaniLocale for RikaContext {
+    fn i18n(&self) -> LocaleAccess<Localizer<RikaLocale, RikaLocalizer>> {
+        self.data
+            .shared
+            .locales
+            .get(RikaLocale::UnitedStatesEnglish)
+    }
 }

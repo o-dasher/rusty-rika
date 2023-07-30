@@ -1877,6 +1877,7 @@ dependencies = [
  "derive_more",
  "envy",
  "kani-kani",
+ "lexicon",
  "nasus",
  "rika-model",
  "rosu-v2",

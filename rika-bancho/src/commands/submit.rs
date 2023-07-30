@@ -1,11 +1,12 @@
 use anyhow::anyhow;
 use kani_kani::KaniContext;
+use lexicon::t_prefix;
 use rika_model::{
     osu::submit::{ScoreSubmitter, SubmissionError, SubmittableMode},
     SharedRika,
 };
 
-use crate::{error::RikaBanchoError, RikaData};
+use crate::{error::RikaBanchoError, KaniLocale, RikaData};
 
 pub struct BanchoSubmitMode(SubmittableMode);
 
@@ -35,6 +36,9 @@ impl Default for BanchoSubmitMode {
 }
 
 pub async fn submit(ctx: KaniContext<RikaData>) -> Result<(), RikaBanchoError> {
+    let i18n = ctx.i18n();
+    t_prefix!($, i18n.osu.submit);
+
     let KaniContext {
         args, data, sender, ..
     } = &ctx;
@@ -45,7 +49,7 @@ pub async fn submit(ctx: KaniContext<RikaData>) -> Result<(), RikaBanchoError> {
 
     let mode: BanchoSubmitMode = args.first().into();
 
-    ctx.say("This may take a while")
+    ctx.say(&t!(too_long_warning))
         .await
         .map_err(|_| RikaBanchoError::Fallthrough)?;
 
@@ -57,7 +61,7 @@ pub async fn submit(ctx: KaniContext<RikaData>) -> Result<(), RikaBanchoError> {
 
     while let Some((amount, out_of)) = receiver.recv().await {
         if amount % 10 == 0 {
-            ctx.say(&format!("Submitted {amount} out of {out_of}"))
+            ctx.say(&t!(progress_shower).r((amount, out_of)))
                 .await
                 .map_err(|_| RikaBanchoError::Fallthrough)?;
         }
@@ -65,12 +69,12 @@ pub async fn submit(ctx: KaniContext<RikaData>) -> Result<(), RikaBanchoError> {
 
     if let Ok(result) = submit_result.await {
         result.map_err(|e| match e {
-            SubmissionError::IdLocker(..) => anyhow!("Already submitted").into(),
+            SubmissionError::IdLocker(..) => anyhow!(t!(already_submitting).clone()).into(),
             e => e,
         })?
     }
 
-    ctx.say("Submitted your stuff!")
+    ctx.say(&t!(submitted))
         .await
         .map_err(|_| RikaBanchoError::Fallthrough)?;
 
