@@ -47,7 +47,7 @@ pub async fn submit(ctx: KaniContext<RikaData>) -> Result<(), RikaBanchoError> {
         score_submitter, ..
     } = shared.as_ref();
 
-    let mode: BanchoSubmitMode = args.first().into();
+    let mode = BanchoSubmitMode::from(args.first());
 
     ctx.say(&t!(too_long_warning))
         .await
