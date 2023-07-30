@@ -1859,6 +1859,7 @@ version = "0.1.0"
 dependencies = [
  "dotenvy",
  "envy",
+ "lexicon",
  "rika-bancho",
  "rika-model",
  "rika-poise",
@@ -1890,14 +1891,20 @@ name = "rika-model"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bevy_reflect",
  "derive_more",
  "fchashmap",
  "id-locked",
  "itertools 0.11.0",
+ "lexicon",
+ "nestruct",
  "paste",
+ "poise",
  "reqwest",
+ "roricon",
  "rosu-pp",
  "rosu-v2",
+ "serde",
  "sqlx",
  "strum",
  "thiserror",

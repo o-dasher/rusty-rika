@@ -1,21 +1,20 @@
 use anyhow::anyhow;
 use lexicon::t_prefix;
-use rika_model::SharedRika;
+use rika_model::{rika_cord, SharedRika};
 use roricon::RoriconTrait;
 
 use crate::{
     commands::CommandReturn,
     models::osu_user::OsuUser,
     utils::{emojis::RikaMoji, markdown::mono, replies::cool_text},
-    RikaContext, RikaData,
 };
 
 #[poise::command(slash_command)]
-pub async fn link(ctx: RikaContext<'_>, name: String) -> CommandReturn {
+pub async fn link(ctx: rika_cord::Context<'_>, name: String) -> CommandReturn {
     let i18n = ctx.i18n();
     t_prefix!($, i18n.osu.link);
 
-    let RikaData { shared, .. } = ctx.data().as_ref();
+    let rika_cord::Data { shared, .. } = ctx.data().as_ref();
     let SharedRika { db, rosu, .. } = shared.as_ref();
 
     let osu_user = rosu

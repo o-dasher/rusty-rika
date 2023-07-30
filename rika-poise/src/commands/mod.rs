@@ -1,10 +1,10 @@
-use crate::RikaError;
+use rika_model::rika_cord;
 
 pub mod owner;
 
-pub mod user;
 pub mod math;
-pub mod rate;
 pub mod osu;
+pub mod rate;
+pub mod user;
 
-pub type CommandReturn = Result<(), RikaError>;
+pub type CommandReturn = Result<(), rika_cord::Error>;

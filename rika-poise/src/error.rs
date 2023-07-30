@@ -1,36 +1,12 @@
 use std::sync::Arc;
 
-use crate::{
-    commands::osu::RikaOsuError,
-    utils::{emojis::RikaMoji, replies::cool_text},
-    RikaData,
-};
-use derive_more::From;
-use id_locked::IDLockerError;
+use crate::utils::{emojis::RikaMoji, replies::cool_text};
 use log::error;
-use poise::serenity_prelude;
-use rika_model::osu::submit::SubmissionError;
-use rosu_v2::prelude::OsuError;
-use strum::Display;
-
-#[derive(Debug, From, Display)]
-pub enum RikaError {
-    Serenity(serenity_prelude::Error),
-
-    Anyhow(anyhow::Error),
-    Sqlx(sqlx::Error),
-    Osu(OsuError),
-    Rosu(rosu_pp::ParseError),
-    RikaOsu(RikaOsuError),
-    LockError(IDLockerError),
-    Submission(SubmissionError),
-
-    Fallthrough,
-}
+use rika_model::rika_cord;
 
 pub async fn on_error(
-    error: poise::FrameworkError<'_, Arc<RikaData>, RikaError>,
-) -> Result<(), RikaError> {
+    error: poise::FrameworkError<'_, Arc<rika_cord::Data>, rika_cord::Error>,
+) -> Result<(), rika_cord::Error> {
     match error {
         poise::FrameworkError::Command { error, ctx } => {
             tracing::warn!("FrameworkCommand: {error}");
@@ -52,8 +28,8 @@ pub async fn on_error(
             }
 
             match error {
-                RikaError::Anyhow(e) => handle!(e),
-                RikaError::RikaOsu(e) => handle!(e),
+                rika_cord::Error::Anyhow(e) => handle!(e),
+                rika_cord::Error::RikaOsu(e) => handle!(e),
                 e => handle!(
                     e,
                     "Something unexpected happened while executing this command."

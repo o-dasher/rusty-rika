@@ -5,15 +5,15 @@ pub mod submit;
 use link::link;
 use poise::{async_trait, command, ChoiceParameter};
 use recommend::recommend;
-use rika_model::SharedRika;
+use rika_model::{rika_cord, SharedRika};
 use rosu_v2::prelude::GameMode;
 use sqlx::Result;
 use submit::submit;
 
-use crate::{commands::CommandReturn, error, RikaContext, RikaData};
+use crate::commands::CommandReturn;
 
 #[command(slash_command, subcommands("link", "submit", "recommend"))]
-pub async fn osu(_ctx: RikaContext<'_>) -> CommandReturn {
+pub async fn osu(_ctx: rika_cord::Context<'_>) -> CommandReturn {
     Ok(())
 }
 
@@ -40,27 +40,15 @@ impl From<OsuMode> for GameMode {
     }
 }
 
-#[derive(thiserror::Error, Debug)]
-pub enum RikaOsuError {
-    #[error("You must link your account to use this command.")]
-    NotLinked,
-
-    #[error("You must submit some scores before using this command. Try `/osu submit`")]
-    RequiresSubmission,
-
-    #[error("This command does not support this mode.")]
-    UnsupportedMode,
-}
-
 #[async_trait]
 pub trait RikaOsuContext {
-    async fn linked_osu_user(&self) -> Result<((), u32), RikaOsuError>;
+    async fn linked_osu_user(&self) -> Result<((), u32), rika_cord::OsuError>;
 }
 
 #[async_trait]
-impl RikaOsuContext for RikaContext<'_> {
-    async fn linked_osu_user(&self) -> Result<((), u32), RikaOsuError> {
-        let RikaData { shared, .. } = self.data().as_ref();
+impl RikaOsuContext for rika_cord::Context<'_> {
+    async fn linked_osu_user(&self) -> Result<((), u32), rika_cord::OsuError> {
+        let rika_cord::Data { shared, .. } = self.data().as_ref();
         let SharedRika { db, .. } = shared.as_ref();
 
         let user = sqlx::query!(
@@ -69,9 +57,9 @@ impl RikaOsuContext for RikaContext<'_> {
         )
         .fetch_one(db)
         .await
-        .map_err(|_| RikaOsuError::NotLinked)?;
+        .map_err(|_| rika_cord::OsuError::NotLinked)?;
 
-        let osu_id = user.osu_id.ok_or(RikaOsuError::NotLinked)?;
+        let osu_id = user.osu_id.ok_or(rika_cord::OsuError::NotLinked)?;
 
         Ok(((), osu_id))
     }

@@ -27,6 +27,7 @@ tokio = "1.29.1"
 rika-poise = { path = "./rika-poise" }
 rika-bancho = { path = "./rika-bancho" }
 rika-model = { path = "./rika-model/" }
+lexicon = { path = "./lexicon" }
 dotenvy = "0.15.7"
 sqlx = "0.7.1"
 envy = "0.4.2"

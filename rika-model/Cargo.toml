@@ -6,11 +6,18 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-id-locked = {path="../id-locked"}
+id-locked = { path = "../id-locked" }
+lexicon = { path = "../lexicon" }
+roricon = { path = "../roricon" }
 derive_more = "0.99.17"
 itertools = "0.11.0"
 rosu-pp = { version = "0.9.4", features = ["async_tokio"] }
-sqlx = { version = "0.7.1", features = ["time", "sqlx-mysql", "mysql", "runtime-tokio-rustls"] }
+sqlx = { version = "0.7.1", features = [
+  "time",
+  "sqlx-mysql",
+  "mysql",
+  "runtime-tokio-rustls",
+] }
 strum = { version = "0.25.0", features = ["derive", "strum_macros"] }
 paste = "1.0.14"
 rosu-v2 = "0.8.0"
@@ -19,3 +26,7 @@ reqwest = "0.11.18"
 fchashmap = "0.1.3"
 anyhow = "1.0.72"
 thiserror = "1.0.44"
+nestruct = "0.1.0"
+bevy_reflect = "0.11.0"
+poise = "0.5.5"
+serde = { version = "1.0.178", features = ["derive"] }

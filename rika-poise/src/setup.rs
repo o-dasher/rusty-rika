@@ -1,28 +1,21 @@
 use std::sync::Arc;
 
-use lexicon::Localizer;
 use log::{error, info};
 use poise::{
     serenity_prelude::{self, GuildId},
     Framework,
 };
-use rika_model::{osu::submit::ScoreSubmitter, SharedRika};
+use rika_model::{osu::submit::ScoreSubmitter, rika_cord, SharedRika};
 use rosu_v2::prelude::GameMode;
 
-use crate::{
-    error::RikaError,
-    models::osu_user::OsuUser,
-    translations::{rika_localizer::RikaLocalizer, RikaLocale},
-    RikaConfig, RikaData,
-};
+use crate::models::osu_user::OsuUser;
 
 pub async fn setup(
     ctx: &serenity_prelude::Context,
-    framework: &Framework<Arc<RikaData>, RikaError>,
-    locales: Localizer<RikaLocale, RikaLocalizer>,
-    config: RikaConfig,
+    framework: &Framework<Arc<rika_cord::Data>, rika_cord::Error>,
+    config: rika_cord::Config,
     shared: Arc<SharedRika>,
-) -> Result<Arc<RikaData>, RikaError> {
+) -> Result<Arc<rika_cord::Data>, rika_cord::Error> {
     let to_register = &framework.options().commands;
 
     match config.development_guild {
@@ -32,11 +25,7 @@ pub async fn setup(
         None => poise::builtins::register_globally(ctx, to_register).await?,
     }
 
-    let rika_data = Arc::new(RikaData {
-        config,
-        locales,
-        shared,
-    });
+    let rika_data = Arc::new(rika_cord::Data { config, shared });
 
     let cloned_data = rika_data.clone();
 
@@ -45,8 +34,8 @@ pub async fn setup(
     Ok(rika_data)
 }
 
-async fn background_setup(data: Arc<RikaData>) {
-    let RikaData { config, shared, .. } = data.as_ref();
+async fn background_setup(data: Arc<rika_cord::Data>) {
+    let rika_cord::Data { config, shared, .. } = data.as_ref();
     let SharedRika {
         db,
         rosu,

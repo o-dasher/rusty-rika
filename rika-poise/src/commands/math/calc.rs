@@ -1,16 +1,16 @@
 use anyhow::anyhow;
 use lexicon::t_prefix;
+use rika_model::rika_cord;
 use roricon::RoriconTrait;
 
 use crate::{
     commands::CommandReturn,
     utils::markdown::{bold, mono},
-    RikaContext,
 };
 
 #[poise::command(slash_command)]
 pub async fn calc(
-    ctx: RikaContext<'_>,
+    ctx: rika_cord::Context<'_>,
     #[description = "Selected expression"] expression: String,
 ) -> CommandReturn {
     let i18n = ctx.i18n();

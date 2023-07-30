@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use dotenvy::dotenv;
+use lexicon::Localizer;
 use rika_model::{
+    i18n::{pt_br::locale_pt_br, RikaLocale},
     osu::{beatmap::BeatmapCache, submit::ScoreSubmitter},
     SharedRika,
 };
@@ -19,6 +21,8 @@ pub struct RikaConfig {
 #[tokio::main]
 pub async fn main() {
     dotenv().ok();
+
+    let locales = Localizer::new(vec![(RikaLocale::BrazilianPortuguese, locale_pt_br)]);
 
     let config = envy::from_env::<RikaConfig>().unwrap();
 
@@ -40,6 +44,7 @@ pub async fn main() {
         rosu,
         beatmap_cache: BeatmapCache::new(),
         score_submitter: Arc::new(RwLock::new(ScoreSubmitter::new())),
+        locales,
     });
 
     shared_data

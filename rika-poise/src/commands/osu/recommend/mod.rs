@@ -1,4 +1,3 @@
-use crate::RikaContext;
 use crate::{commands::CommandReturn, models::osu_score::OsuScore};
 use num_traits::Float;
 use poise::command;
@@ -9,11 +8,12 @@ mod taiko;
 
 use mania::mania;
 use osu::osu;
+use rika_model::rika_cord;
 use sqlx::{MySql, Pool, QueryBuilder};
 use taiko::taiko;
 
 #[command(slash_command, subcommands("osu", "taiko", "mania"))]
-pub async fn recommend(_ctx: RikaContext<'_>) -> CommandReturn {
+pub async fn recommend(_ctx: rika_cord::Context<'_>) -> CommandReturn {
     Ok(())
 }
 
@@ -69,7 +69,7 @@ macro_rules! fetch_performance {
             .await?;
 
             if row.is_empty() {
-                return Err(RikaOsuError::RequiresSubmission)?;
+                return Err(rika_cord::OsuError::RequiresSubmission)?;
             }
 
             row
