@@ -12,7 +12,6 @@ pub struct BanchoSubmitMode(SubmittableMode);
 impl From<&str> for BanchoSubmitMode {
     fn from(value: &str) -> Self {
         Self(match value {
-            "osu" => SubmittableMode::Osu,
             "taiko" => SubmittableMode::Taiko,
             "mania" => SubmittableMode::Mania,
             _ => SubmittableMode::Osu,
