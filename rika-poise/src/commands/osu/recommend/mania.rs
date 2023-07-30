@@ -22,8 +22,7 @@ use crate::{
 
 #[poise::command(slash_command)]
 pub async fn mania(ctx: rika_cord::Context<'_>, range: Option<f32>) -> CommandReturn {
-    let rika_cord::Data { shared, .. } = ctx.data().as_ref();
-    let SharedRika { db, .. } = shared.as_ref();
+    let SharedRika { db, .. } = ctx.data().shared.as_ref();
 
     init_recommendation!($, db, ctx, range, Mania);
 

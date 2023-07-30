@@ -23,10 +23,9 @@ pub async fn submit(ctx: rika_cord::Context<'_>, mode: OsuMode) -> CommandReturn
 
     let (.., osu_id) = ctx.linked_osu_user().await?;
 
-    let rika_cord::Data { shared, .. } = ctx.data().as_ref();
     let SharedRika {
         score_submitter, ..
-    } = shared.as_ref();
+    } = ctx.data().shared.as_ref();
 
     let msg = ctx
         .say(cool_text(RikaMoji::ChocolateBar, &t!(too_long_warning)))

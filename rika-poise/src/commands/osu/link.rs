@@ -14,8 +14,7 @@ pub async fn link(ctx: rika_cord::Context<'_>, name: String) -> CommandReturn {
     let i18n = ctx.i18n();
     t_prefix!($, i18n.osu.link);
 
-    let rika_cord::Data { shared, .. } = ctx.data().as_ref();
-    let SharedRika { db, rosu, .. } = shared.as_ref();
+    let SharedRika { db, rosu, .. } = ctx.data().shared.as_ref();
 
     let osu_user = rosu
         .user(&name)

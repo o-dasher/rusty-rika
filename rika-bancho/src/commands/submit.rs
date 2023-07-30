@@ -42,10 +42,9 @@ pub async fn submit(ctx: KaniContext<RikaData>) -> Result<(), RikaBanchoError> {
     let KaniContext {
         args, data, sender, ..
     } = &ctx;
-    let RikaData { shared } = data.as_ref();
     let SharedRika {
         score_submitter, ..
-    } = shared.as_ref();
+    } = data.shared.as_ref();
 
     let mode = BanchoSubmitMode::from(args.first());
 
