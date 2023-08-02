@@ -6,6 +6,7 @@ use osu::{beatmap::BeatmapCache, submit::ScoreSubmitter};
 use sqlx::MySqlPool;
 use tokio::sync::RwLock;
 
+pub mod barebone_commands;
 pub mod i18n;
 pub mod osu;
 pub mod rika_cord;

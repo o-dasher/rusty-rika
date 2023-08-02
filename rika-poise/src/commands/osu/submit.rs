@@ -1,11 +1,12 @@
-use anyhow::anyhow;
+use std::sync::Arc;
+
 use lexicon::t_prefix;
 use rika_model::{
-    osu::submit::{ScoreSubmitter, SubmissionError},
-    rika_cord, SharedRika,
+    barebone_commands::submit::{submit_barebones, SubmitStatus},
+    rika_cord,
 };
 use roricon::RoriconTrait;
-use rosu_v2::prelude::GameMode;
+use tokio::sync::mpsc;
 
 use crate::{
     commands::{
@@ -18,42 +19,37 @@ use crate::{
 /// Submits your top plays, only works for STD.
 #[poise::command(slash_command)]
 pub async fn submit(ctx: rika_cord::Context<'_>, mode: OsuMode) -> CommandReturn {
-    let i18n = ctx.i18n();
-    t_prefix!($, i18n.osu.submit);
-
     let (.., osu_id) = ctx.linked_osu_user().await?;
 
-    let SharedRika {
-        score_submitter, ..
-    } = ctx.data().shared.as_ref();
+    let ctx_clone = ctx.clone();
+    //let (sender, mut receiver) = mpsc::unbounded_channel();
 
-    let msg = ctx
-        .say(cool_text(RikaMoji::ChocolateBar, &t!(too_long_warning)))
-        .await?;
-
-    let (to_submit, mut receiver) = ScoreSubmitter::begin_submission(&score_submitter);
-    let submit_result =
-        tokio::spawn(async move { to_submit.submit_scores(osu_id, GameMode::from(mode)).await });
-
-    while let Some((amount, out_of)) = receiver.recv().await {
-        msg.edit(ctx, |b| {
-            b.content(cool_text(
-                RikaMoji::ChocolateBar,
-                &t!(progress_shower).r((amount, out_of)),
-            ))
-        })
-        .await?
-    }
-
-    if let Ok(result) = submit_result.await {
-        result.map_err(|e| match e {
-            SubmissionError::IdLocker(..) => anyhow!(t!(already_submitting).clone()).into(),
-            e => e,
-        })?
-    }
-
-    msg.edit(ctx, |r| r.content(cool_text(RikaMoji::Ok, &t!(submitted))))
-        .await?;
-
+    //    tokio::spawn(submit_barebones(
+    //        ctx_clone.data().shared.as_ref(),
+    //        osu_id,
+    //        ctx_clone.i18n(),
+    //        sender,
+    //        mode.into(),
+    //    ));
+    //
+    //    while let Some((status, text)) = receiver.recv().await {
+    //        match status {
+    //            SubmitStatus::Start(sender) => {
+    //                sender.send(ctx.say(cool_text(RikaMoji::ChocolateBar, &text)).await?);
+    //            }
+    //            SubmitStatus::Sending((msg, ..)) => {
+    //                msg.edit(ctx, |b| {
+    //                    b.content(&cool_text(RikaMoji::ChocolateBar, &text))
+    //                })
+    //                .await?;
+    //            }
+    //            SubmitStatus::Finished(msg) => {
+    //                msg.edit(ctx, |b| {
+    //                    b.content(&cool_text(RikaMoji::ChocolateBar, &text))
+    //                });
+    //            }
+    //        };
+    //    }
+    //
     Ok(())
 }

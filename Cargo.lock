@@ -1892,6 +1892,7 @@ name = "rika-model"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-callable",
  "bevy_reflect",
  "derive_more",
  "fchashmap",

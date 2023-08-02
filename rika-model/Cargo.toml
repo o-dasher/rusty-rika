@@ -9,6 +9,7 @@ edition = "2021"
 id-locked = { path = "../id-locked" }
 roricon = { path = "../roricon" }
 lexicon = { path = "../lexicon" }
+async-callable = { path = "../async-callable" }
 derive_more = "0.99.17"
 itertools = "0.11.0"
 rosu-pp = { version = "0.9.4", features = ["async_tokio"] }
