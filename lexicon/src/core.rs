@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::{collections::HashMap, hash::Hash, str::FromStr};
 
 use bevy_reflect::{FromReflect, GetPath, Reflect, TypePath};
@@ -31,11 +32,11 @@ pub trait DefaultLocalizer {
 }
 
 /// Stores localizers for a given locale.
-pub struct LocalizerStore<L: LocalizerTrait>(pub HashMap<L::Key, L::Value>);
+pub struct LocalizerStore<L: LocalizerTrait>(pub HashMap<L::Key, Arc<L::Value>>);
 
 impl<L: LocalizerTrait, F: Fn() -> L::Value> From<Vec<(L::Key, F)>> for LocalizerStore<L> {
     fn from(value: Vec<(L::Key, F)>) -> Self {
-        Self(value.into_iter().map(|(k, v)| (k, v())).collect())
+        Self(value.into_iter().map(|(k, v)| (k, v().into())).collect())
     }
 }
 
@@ -55,18 +56,24 @@ impl<K: Eq + Hash + Copy + Default, V: DefaultLocalizer> LocalizerTrait for Loca
 }
 
 /// A wrapper for a localizer that provides access to the localizer for a given locale.
-pub struct LocaleAccess<'a, L: LocalizerTrait> {
-    pub localizer: &'a Localizer<L::Key, L::Value>,
-    pub to: &'a L::Value,
+pub struct LocaleAccess<L: LocalizerTrait> {
+    pub default: Arc<L::Value>,
+    pub to: Arc<L::Value>,
 }
 
-impl<'a, L: LocalizerTrait> LocaleAccess<'a, L> {
+impl<L: LocalizerTrait> Clone for LocaleAccess<L> {
+    fn clone(&self) -> Self {
+        Self { default: Arc::clone(&self.default), to: Arc::clone(&self.to) }
+    }
+}
+
+impl<L: LocalizerTrait> LocaleAccess<L> {
     /// Returns the localized value for the given locale, or the default value if the locale is not
     /// properly declared and found.
-    pub fn r<Resource>(&self, accessing: fn(&'a L::Value) -> &'a Option<Resource>) -> &'a Resource {
-        accessing(self.to)
+    pub fn r<Resource>(&self, accessing: fn(&Arc<L::Value>) -> &Option<Resource>) -> &Resource {
+        accessing(&self.to)
             .as_ref()
-            .unwrap_or_else(|| accessing(self.localizer.ref_default()).as_ref().unwrap())
+            .unwrap_or_else(|| accessing(&self.default).as_ref().unwrap())
     }
 }
 
@@ -83,17 +90,12 @@ impl<V: DefaultLocalizer + Reflect> LexiconThroughPath for V {
     }
 }
 
-impl<'a, L: LocalizerTrait> LexiconThroughPath for LocaleAccess<'a, L>
-where
-    L::Value: Reflect,
+impl<L: LocalizerTrait> LexiconThroughPath for LocaleAccess<L>
+    where
+        L::Value: Reflect,
 {
-    fn rs<Resource: Reflect + TypePath + FromReflect>(
-        &self,
-        acessing: &str,
-    ) -> Option<&'a Resource> {
-        self.to
-            .rs(acessing)
-            .or_else(|| self.localizer.ref_default().rs(acessing))
+    fn rs<Resource: Reflect + TypePath + FromReflect>(&self, acessing: &str) -> Option<&Resource> {
+        self.to.rs(acessing).or_else(|| self.default.rs(acessing))
     }
 }
 
@@ -116,34 +118,34 @@ impl<K: Eq + Hash + Copy + Default + FromStr> From<Option<&str>> for LocaleKey<K
 }
 
 impl<K: Eq + Hash + Copy + Default, V: DefaultLocalizer> Localizer<K, V>
-where
-    Self: LocalizerTrait<Key = K, Value = V>,
+    where
+        Self: LocalizerTrait<Key=K, Value=V>,
 {
     /// Creates a new localizer from a store of localizers.
     pub fn new(store: Vec<(K, fn() -> V)>) -> Self {
         let mut store = LocalizerStore::from(store);
 
-        store.0.insert(K::default(), V::default_localizer());
+        store.0.insert(K::default(), V::default_localizer().into());
 
         Self { store }
     }
 
-    fn ref_opt(&self, locale: &K) -> Option<&V> {
-        self.store.0.get(locale)
+    fn ref_opt(&self, locale: &K) -> Option<Arc<V>> {
+        self.store.0.get(locale).cloned()
     }
 
-    fn ref_default(&self) -> &V {
+    fn ref_default(&self) -> Arc<V> {
         self.ref_opt(&K::default()).unwrap()
     }
 
-    fn ref_any(&self, locale: &K) -> &V {
+    fn ref_any(&self, locale: &K) -> Arc<V> {
         self.ref_opt(locale).unwrap_or_else(|| self.ref_default())
     }
 
     /// Returns a wrapper for the localizer that provides access to the localizer for a given locale.
     pub fn get(&self, locale: impl Into<K>) -> LocaleAccess<Self> {
         LocaleAccess {
-            localizer: self,
+            default: self.ref_default(),
             to: self.ref_any(&locale.into()),
         }
     }

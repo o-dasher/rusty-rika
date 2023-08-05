@@ -61,9 +61,9 @@ impl DefaultLocalizer for RikaLocalizer {
                         vec!["Wowie, they should open a... you know it!"],
                         vec!["OH GOD! give it to me, gimme gimme (a man of the midnight)"],
                     ]
-                    .iter()
-                    .map(|v| v.iter().map(|l| l.to_string()).collect())
-                    .collect(),
+                        .iter()
+                        .map(|v| v.iter().map(|l| l.to_string()).collect())
+                        .collect(),
                 ),
             },
         }

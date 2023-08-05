@@ -1,3 +1,5 @@
+#![deny(rust_2018_idioms)]
+
 pub mod commands;
 pub mod error;
 pub mod models;

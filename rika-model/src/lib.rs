@@ -1,3 +1,5 @@
+#![deny(rust_2018_idioms)]
+
 use std::sync::Arc;
 
 use i18n::{rika_localizer::RikaLocalizer, RikaLocale};

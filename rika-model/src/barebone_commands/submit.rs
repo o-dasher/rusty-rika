@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use anyhow::anyhow;
-use async_callable::AsyncCallable1;
 use lexicon::{t_prefix, LocaleAccess, Localizer};
 use rosu_v2::prelude::GameMode;
 use tokio::sync::{
@@ -22,9 +21,9 @@ pub enum SubmitStatus<T> {
 }
 
 pub async fn submit_barebones<T: Send + Sync + 'static>(
-    data: &SharedRika,
+    data: Arc<SharedRika>,
     osu_id: impl Into<SubmissionID>,
-    i18n: LocaleAccess<'_, Localizer<RikaLocale, RikaLocalizer>>,
+    i18n: LocaleAccess<Localizer<RikaLocale, RikaLocalizer>>,
     sender: mpsc::UnboundedSender<(SubmitStatus<T>, String)>,
     mode: GameMode,
 ) -> Result<(), anyhow::Error> {
@@ -32,7 +31,7 @@ pub async fn submit_barebones<T: Send + Sync + 'static>(
 
     let SharedRika {
         score_submitter, ..
-    } = data;
+    } = data.as_ref();
 
     let (start_dep_sender, mut start_dep_receiver) = oneshot::channel();
 

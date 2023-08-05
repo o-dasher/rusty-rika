@@ -55,8 +55,8 @@ pub enum Error {
 
 pub type Context<'a> = poise::Context<'a, Arc<Data>, Error>;
 
-impl<'a> RoriconMetaTrait<'a, RikaLocale, RikaLocalizer> for Context<'a> {
-    fn locales(&self) -> &'a Localizer<RikaLocale, RikaLocalizer> {
+impl<'a> RoriconMetaTrait<RikaLocale, RikaLocalizer> for Context<'a> {
+    fn locales(&self) -> &Localizer<RikaLocale, RikaLocalizer> {
         &self.data().shared.locales
     }
 }

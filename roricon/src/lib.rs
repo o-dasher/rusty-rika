@@ -11,28 +11,28 @@ use lexicon::{
 use poise::{Command, CommandParameter, CommandParameterChoice};
 use strum::{Display, EnumIter, IntoEnumIterator};
 
-pub trait RoriconMetaTrait<'a, K: Eq + Hash + Default + Copy, V: DefaultLocalizer> {
+pub trait RoriconMetaTrait<K: Eq + Hash + Default + Copy, V: DefaultLocalizer> {
     // Returns references to the required locales.
-    fn locales(&self) -> &'a Localizer<K, V>;
+    fn locales(&self) -> &Localizer<K, V>;
 }
 
 /// Automatically implemented trait for context's that provide locales.
-pub trait RoriconTrait<'a, K: Eq + Hash + Default + Copy, V: DefaultLocalizer> {
+pub trait RoriconTrait<K: Eq + Hash + Default + Copy, V: DefaultLocalizer> {
     // Acquires i18n access.
-    fn i18n(&self) -> LocaleAccess<'a, Localizer<K, V>>;
-    fn i18n_explicit(&self, localizer: &'a Localizer<K, V>) -> LocaleAccess<'a, Localizer<K, V>>;
+    fn i18n(&self) -> LocaleAccess<Localizer<K, V>>;
+    fn i18n_explicit(&self, localizer: &Localizer<K, V>) -> LocaleAccess<Localizer<K, V>>;
 }
 
-impl<'a, K: Eq + Hash + Default + Copy + FromStr, V: DefaultLocalizer, U, E> RoriconTrait<'a, K, V>
-    for poise::Context<'a, U, E>
-where
-    Self: RoriconMetaTrait<'a, K, V>,
+impl<'a, K: Eq + Hash + Default + Copy + FromStr, V: DefaultLocalizer, U, E> RoriconTrait<K, V>
+for poise::Context<'a, U, E>
+    where
+        Self: RoriconMetaTrait<K, V>,
 {
-    fn i18n(&self) -> LocaleAccess<'a, Localizer<K, V>> {
+    fn i18n(&self) -> LocaleAccess<Localizer<K, V>> {
         self.i18n_explicit(self.locales())
     }
 
-    fn i18n_explicit(&self, localizer: &'a Localizer<K, V>) -> LocaleAccess<'a, Localizer<K, V>> {
+    fn i18n_explicit(&self, localizer: &Localizer<K, V>) -> LocaleAccess<Localizer<K, V>> {
         let key: K = LocaleKey::from(self.locale()).0;
         localizer.get(key)
     }
@@ -45,7 +45,7 @@ enum CommandLocalization {
     Description,
 }
 
-struct LocaleAccesses<'a, L: LocalizerTrait>(Vec<(String, LocaleAccess<'a, L>)>);
+struct LocaleAccesses<L: LocalizerTrait>(Vec<(String, LocaleAccess<L>)>);
 
 pub fn apply_translations<
     K: Eq + Hash + Default + Copy + Display,
@@ -53,7 +53,7 @@ pub fn apply_translations<
     U,
     E,
 >(
-    commands: &mut [poise::Command<U, E>],
+    commands: &mut [Command<U, E>],
     localizer: &Localizer<K, V>,
 ) {
     let locale_accesses = localizer
@@ -98,11 +98,11 @@ impl RoriconLocalizable for CommandParameterChoice {
     }
 }
 
-fn apply_localization<'a, L: LocalizerTrait>(
+fn apply_localization<L: LocalizerTrait>(
     path: &mut Vec<String>,
     next_tag: String,
-    localizable: &'a mut impl RoriconLocalizable,
-    locale_accesses: &LocaleAccesses<'a, L>,
+    localizable: &mut impl RoriconLocalizable,
+    locale_accesses: &LocaleAccesses<L>,
 ) where
     L::Key: Display,
     L::Value: Reflect,
@@ -129,7 +129,7 @@ fn apply_localization<'a, L: LocalizerTrait>(
         let possible_resource = access.rs::<R>(tag);
 
         let Some(localized_key) = possible_resource else {
-                continue;
+            continue;
         };
 
         let lang_key = lang_key.clone();
@@ -154,8 +154,8 @@ fn apply_localization<'a, L: LocalizerTrait>(
 }
 
 fn apply_translation<L: LocalizerTrait, U, E>(
-    commands: &mut [poise::Command<U, E>],
-    locale_accesses: &LocaleAccesses<'_, L>,
+    commands: &mut [Command<U, E>],
+    locale_accesses: &LocaleAccesses<L>,
 ) where
     L::Key: Display,
     L::Value: Reflect,
