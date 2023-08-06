@@ -4,6 +4,7 @@ use parking_lot::Mutex;
 use strum::Display;
 use thiserror::Error;
 
+#[derive(Debug)]
 pub struct IDLocker(Arc<Mutex<HashSet<String>>>);
 
 #[derive(Error, Debug, Display)]
@@ -14,6 +15,7 @@ pub enum IDLockerError {
 
 pub type IDLockerResult = Result<(), IDLockerError>;
 
+#[derive(Debug)]
 pub struct IDLockGuard<'a> {
     locker: &'a IDLocker,
     locking: String,

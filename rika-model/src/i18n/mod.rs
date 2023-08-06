@@ -44,7 +44,7 @@ nestruct::nest! {
     }
 }
 
-#[derive(Hash, Clone, Copy, PartialEq, Eq, Display, From, Default, EnumString)]
+#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq, Display, From, Default, EnumString)]
 pub enum RikaLocale {
     #[default]
     #[strum(serialize = "en-US")]

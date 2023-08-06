@@ -1,3 +1,4 @@
+use std::fmt::{Debug, Formatter};
 use std::{error::Error, sync::Arc};
 
 use async_callable::AsyncCallable1;
@@ -6,12 +7,11 @@ use nasus::{CmdIn, CmdOut, Nasus};
 use strum::Display;
 use tokio::sync::Mutex;
 
-pub type BoxedError = Box<dyn std::error::Error + Sync + Send>;
+pub type BoxedError = Box<dyn Error + Sync + Send>;
 
-#[derive(thiserror::Error, Debug, Display)]
-pub enum KaniError<E> {
-    #[error(transparent)]
-    CommandError(E),
+#[derive(thiserror::Error, Display)]
+pub enum KaniError<D, E> {
+    CommandError(E, Arc<KaniContext<D>>),
 
     #[error(transparent)]
     OutputError(E),
@@ -22,7 +22,18 @@ pub enum KaniError<E> {
     Fucked,
 }
 
-pub type KaniResult<E> = Result<(), KaniError<E>>;
+impl<D, E: Debug> Debug for KaniError<D, E> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::CommandError(..) => f.debug_tuple("CommandError").finish(),
+            Self::OutputError(arg0) => f.debug_tuple("OutputError").field(arg0).finish(),
+            Self::SetupError(arg0) => f.debug_tuple("SetupError").field(arg0).finish(),
+            Self::Fucked => write!(f, "Fucked"),
+        }
+    }
+}
+
+pub type KaniResult<D, E> = Result<(), KaniError<D, E>>;
 
 pub struct KaniContext<D> {
     pub irc: Arc<Mutex<Nasus>>,
@@ -47,17 +58,17 @@ impl<D> KaniContext<D> {
 
 pub type CommandDefiner<'a, D, E> = Vec<(
     Vec<&'static str>,
-    &'a dyn AsyncCallable1<'a, KaniContext<D>, Result<(), E>>,
+    &'a dyn AsyncCallable1<'a, Arc<KaniContext<D>>, Result<(), E>>,
 )>;
 
-pub type OnErrorHandler<'a, E> = &'a dyn AsyncCallable1<'a, KaniError<E>, Result<(), E>>;
+pub type OnErrorHandler<'a, D, E> = &'a dyn AsyncCallable1<'a, KaniError<D, E>, Result<(), E>>;
 
 pub struct KaniFramework<'a, D, E> {
     pub config: nasus::BanchoConfig,
     pub data: D,
     pub prefix: String,
     pub commands: CommandDefiner<'a, D, E>,
-    pub on_error: OnErrorHandler<'a, E>,
+    pub on_error: OnErrorHandler<'a, D, E>,
 }
 
 pub struct KaniWorker<'a, D, E> {
@@ -65,12 +76,15 @@ pub struct KaniWorker<'a, D, E> {
     pub data: Arc<D>,
     pub prefix: String,
     pub commands: CommandDefiner<'a, D, E>,
-    pub on_error: OnErrorHandler<'a, E>,
+    pub on_error: OnErrorHandler<'a, D, E>,
 }
 
-impl<'a, D, E> KaniWorker<'a, D, E> {
-    async fn handle_input(&self, cmd_in: CmdIn) -> Result<(), E> {
-        let CmdIn::ReceivePM { sender,  message, .. } = cmd_in else {
+impl<'a, D: Send + Sync, E> KaniWorker<'a, D, E> {
+    async fn handle_input(&self, cmd_in: CmdIn) -> Result<(), (E, Arc<KaniContext<D>>)> {
+        let CmdIn::ReceivePM {
+            sender, message, ..
+        } = cmd_in
+        else {
             return Ok(());
         };
 
@@ -96,14 +110,18 @@ impl<'a, D, E> KaniWorker<'a, D, E> {
             return Ok(());
         };
 
-        runnable
-            .call(KaniContext {
-                irc: self.irc.clone(),
-                args: args.iter().map(ToString::to_string).collect_vec(),
-                sender,
-                data: self.data.clone(),
-            })
-            .await?;
+        let ctx = Arc::new(KaniContext {
+            irc: self.irc.clone(),
+            args: args.iter().map(ToString::to_string).collect_vec(),
+            sender,
+            data: self.data.clone(),
+        });
+
+        let result_call = runnable.call(ctx.clone()).await;
+
+        if let Err(e) = result_call {
+            return Err((e, ctx));
+        }
 
         Ok(())
     }
@@ -113,11 +131,11 @@ impl<'a, D, E> KaniWorker<'a, D, E> {
     }
 }
 
-impl<'a, D, E: Error + Send + Sync + 'static> KaniFramework<'a, D, E> {
-    pub async fn run(self) -> KaniResult<E> {
+impl<'a, D: Send + Sync + 'static, E: Error + Send + Sync + 'static> KaniFramework<'a, D, E> {
+    pub async fn run(self) -> KaniResult<D, E> {
         let kani_irc =
             Arc::new(Mutex::new(Nasus::new(self.config).await.map_err(|_| {
-                KaniError::SetupError(Box::new(KaniError::<E>::Fucked))
+                KaniError::SetupError(Box::new(KaniError::<D, E>::Fucked))
             })?));
 
         let kani_worker = KaniWorker {
@@ -138,9 +156,12 @@ impl<'a, D, E: Error + Send + Sync + 'static> KaniFramework<'a, D, E> {
             };
 
             if let Some(last_input) = last_input {
-                if let Err(e) = kani_worker.handle_input(last_input).await {
+                if let Err((e, ctx)) = kani_worker.handle_input(last_input).await {
                     // handle error handling error must.
-                    let _ = kani_worker.on_error.call(KaniError::CommandError(e)).await;
+                    let _ = kani_worker
+                        .on_error
+                        .call(KaniError::CommandError(e, ctx))
+                        .await;
                 }
             }
 

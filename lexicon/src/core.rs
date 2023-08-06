@@ -32,6 +32,7 @@ pub trait DefaultLocalizer {
 }
 
 /// Stores localizers for a given locale.
+#[derive(Debug)]
 pub struct LocalizerStore<L: LocalizerTrait>(pub HashMap<L::Key, Arc<L::Value>>);
 
 impl<L: LocalizerTrait, F: Fn() -> L::Value> From<Vec<(L::Key, F)>> for LocalizerStore<L> {
@@ -41,6 +42,7 @@ impl<L: LocalizerTrait, F: Fn() -> L::Value> From<Vec<(L::Key, F)>> for Localize
 }
 
 /// A localizer that wraps a store of localizer implementations.
+#[derive(Debug)]
 pub struct Localizer<K: Eq + Hash + Default + Copy, V: DefaultLocalizer> {
     pub store: LocalizerStore<Self>,
 }

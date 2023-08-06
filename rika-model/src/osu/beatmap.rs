@@ -4,6 +4,7 @@ use fchashmap::FcHashMap;
 use strum::Display;
 use tokio::sync::Mutex;
 
+#[derive(Debug)]
 pub struct BeatmapCache {
     pub client: reqwest::Client,
     pub cache: Arc<Mutex<FcHashMap<u32, Arc<[u8]>, 256>>>,

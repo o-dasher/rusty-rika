@@ -1,10 +1,9 @@
-use anyhow::anyhow;
+use std::sync::Arc;
+
 use kani_kani::KaniContext;
-use lexicon::t_prefix;
-use rika_model::{
-    osu::submit::{ScoreSubmitter, SubmissionError, SubmittableMode},
-    SharedRika,
-};
+use rika_model::barebone_commands::submit::{submit_barebones, SubmitAfter, SubmitStatus};
+use rika_model::osu::submit::SubmittableMode;
+use tokio::sync::mpsc;
 
 use crate::{error::RikaBanchoError, KaniLocale, RikaData};
 
@@ -35,47 +34,49 @@ impl Default for BanchoSubmitMode {
     }
 }
 
-pub async fn submit(ctx: KaniContext<RikaData>) -> Result<(), RikaBanchoError> {
-    let i18n = ctx.i18n();
-    t_prefix!($, i18n.osu.submit);
-
+pub async fn submit(ctx: Arc<KaniContext<RikaData>>) -> Result<(), RikaBanchoError> {
     let KaniContext {
         args, data, sender, ..
-    } = &ctx;
-    let SharedRika {
-        score_submitter, ..
-    } = data.shared.as_ref();
-
+    } = ctx.as_ref();
     let mode = BanchoSubmitMode::from(args.first());
 
-    ctx.say(&t!(too_long_warning))
-        .await
-        .map_err(|_| RikaBanchoError::Fallthrough)?;
+    let (channel_sender, mut receiver) = mpsc::unbounded_channel();
 
-    let sender_clone = sender.clone();
+    let submit_task = tokio::spawn(submit_barebones(
+        data.shared.clone(),
+        "Zaqqy".to_string(),
+        ctx.i18n(),
+        channel_sender,
+        mode.0.into(),
+    ));
 
-    let (to_submit, mut receiver) = ScoreSubmitter::begin_submission(&score_submitter);
-    let submit_result =
-        tokio::spawn(async move { to_submit.submit_scores(sender_clone, mode.0.into()).await });
-
-    while let Some((amount, out_of)) = receiver.recv().await {
-        if amount % 10 == 0 {
-            ctx.say(&t!(progress_shower).r((amount, out_of)))
-                .await
-                .map_err(|_| RikaBanchoError::Fallthrough)?;
-        }
+    while let Some((status, text)) = receiver.recv().await {
+        match status {
+            SubmitStatus::Start => {
+                ctx.say(&text)
+                    .await
+                    .map_err(|_| RikaBanchoError::Fallthrough)?;
+            }
+            SubmitStatus::After(after) => match after {
+                SubmitAfter::Sending((amount,)) => {
+                    if amount % 10 == 0 {
+                        ctx.say(&text)
+                            .await
+                            .map_err(|_| RikaBanchoError::Fallthrough)?;
+                    }
+                }
+                SubmitAfter::Finished => {
+                    ctx.say(&text)
+                        .await
+                        .map_err(|_| RikaBanchoError::Fallthrough)?;
+                }
+            },
+        };
     }
 
-    if let Ok(result) = submit_result.await {
-        result.map_err(|e| match e {
-            SubmissionError::IdLocker(..) => anyhow!(t!(already_submitting).clone()).into(),
-            e => e,
-        })?
+    if let Ok(task) = submit_task.await {
+        task?;
     }
-
-    ctx.say(&t!(submitted))
-        .await
-        .map_err(|_| RikaBanchoError::Fallthrough)?;
 
     Ok(())
 }

@@ -123,7 +123,7 @@ impl ReadyScoreSubmitter {
         let submitter = self.submitter.read().await;
 
         let Some(data) = &submitter.data else {
-            return Err(SubmissionError::MissingDependencies)?
+            return Err(SubmissionError::MissingDependencies)?;
         };
 
         let SharedRika {

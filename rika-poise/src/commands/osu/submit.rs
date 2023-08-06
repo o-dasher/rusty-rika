@@ -4,6 +4,8 @@ use rika_model::{
 };
 use roricon::RoriconTrait;
 use tokio::sync::mpsc;
+use rika_model::barebone_commands::submit::SubmitAfter;
+use rika_model::rika_cord::Error;
 
 use crate::{
     commands::{
@@ -20,34 +22,39 @@ pub async fn submit(ctx: rika_cord::Context<'_>, mode: OsuMode) -> CommandReturn
 
     let (sender, mut receiver) = mpsc::unbounded_channel();
 
-    let data = ctx.clone().data().clone().shared.clone();
-    let i18n = ctx.clone().i18n().clone();
-
     tokio::spawn(
         submit_barebones(
-            data,
+            ctx.data().shared.clone(),
             osu_id,
-            i18n,
+            ctx.i18n(),
             sender,
             mode.into(),
         )
     );
 
+    let mut msg = None;
+
     while let Some((status, text)) = receiver.recv().await {
         match status {
-            SubmitStatus::Start(sender) => {
-                sender.send(ctx.say(cool_text(RikaMoji::ChocolateBar, &text)).await?);
+            SubmitStatus::Start => {
+                msg = Some(ctx.say(cool_text(RikaMoji::ChocolateBar, &text)).await?);
             }
-            SubmitStatus::Sending((msg, ..)) => {
-                msg.edit(ctx, |b| {
-                    b.content(&cool_text(RikaMoji::ChocolateBar, &text))
-                })
-                    .await?;
-            }
-            SubmitStatus::Finished(msg) => {
-                msg.edit(ctx, |b| {
-                    b.content(&cool_text(RikaMoji::ChocolateBar, &text))
-                });
+            SubmitStatus::After(after) => {
+                let msg = msg.clone().ok_or(Error::Fallthrough)?;
+
+                match after {
+                    SubmitAfter::Sending((..)) => {
+                        msg.edit(ctx, |b| {
+                            b.content(&cool_text(RikaMoji::ChocolateBar, &text))
+                        })
+                            .await?;
+                    }
+                    SubmitAfter::Finished => {
+                        msg.edit(ctx, |b| {
+                            b.content(&cool_text(RikaMoji::ChocolateBar, &text))
+                        }).await?;
+                    }
+                }
             }
         };
     }
