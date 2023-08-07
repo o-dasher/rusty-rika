@@ -1,11 +1,11 @@
+use rika_model::barebone_commands::submit::SubmitAfter;
+use rika_model::rika_cord::Error;
 use rika_model::{
     barebone_commands::submit::{submit_barebones, SubmitStatus},
     rika_cord,
 };
 use roricon::RoriconTrait;
 use tokio::sync::mpsc;
-use rika_model::barebone_commands::submit::SubmitAfter;
-use rika_model::rika_cord::Error;
 
 use crate::{
     commands::{
@@ -22,15 +22,13 @@ pub async fn submit(ctx: rika_cord::Context<'_>, mode: OsuMode) -> CommandReturn
 
     let (sender, mut receiver) = mpsc::unbounded_channel();
 
-    tokio::spawn(
-        submit_barebones(
-            ctx.data().shared.clone(),
-            osu_id,
-            ctx.i18n(),
-            sender,
-            mode.into(),
-        )
-    );
+    let submit_task = tokio::spawn(submit_barebones(
+        ctx.data().shared.clone(),
+        osu_id,
+        ctx.i18n(),
+        sender,
+        mode.into(),
+    ));
 
     let mut msg = None;
 
@@ -47,16 +45,21 @@ pub async fn submit(ctx: rika_cord::Context<'_>, mode: OsuMode) -> CommandReturn
                         msg.edit(ctx, |b| {
                             b.content(&cool_text(RikaMoji::ChocolateBar, &text))
                         })
-                            .await?;
+                        .await?;
                     }
                     SubmitAfter::Finished => {
                         msg.edit(ctx, |b| {
                             b.content(&cool_text(RikaMoji::ChocolateBar, &text))
-                        }).await?;
+                        })
+                        .await?;
                     }
                 }
             }
         };
+    }
+
+    if let Ok(task) = submit_task.await {
+        task?
     }
 
     Ok(())

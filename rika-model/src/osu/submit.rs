@@ -73,15 +73,30 @@ impl Default for ScoreSubmitter {
     }
 }
 
-#[derive(thiserror::Error, Debug, Display, derive_more::From)]
+#[derive(thiserror::Error, Debug, derive_more::From)]
 pub enum SubmissionError {
+    #[error("This command does not support this mode.")]
     UnsupportedMode,
+
+    #[error("Missing dependencies.")]
     MissingDependencies,
+
+    #[error(transparent)]
     Sqlx(sqlx::Error),
+
+    #[error(transparent)]
     IdLocker(IDLockerError),
+
+    #[error(transparent)]
     RosuV2(rosu_v2::error::OsuError),
+
+    #[error(transparent)]
     RosuPP(rosu_pp::ParseError),
+
+    #[error(transparent)]
     FetchBeatmap(BeatmapCacheError),
+
+    #[error(transparent)]
     Anyhow(anyhow::Error),
 }
 
@@ -140,7 +155,7 @@ impl ReadyScoreSubmitter {
             SubmissionID::ByUsername(username) => rosu.user(username).await?.user_id,
         };
 
-        let locker_guard = submitter.locker.lock(osu_id.to_string())?;
+        let locker_guard = submitter.locker.lock(osu_id.to_string()).await?;
 
         let osu_scores = rosu.user_scores(osu_id).limit(100).mode(mode).await?;
 
@@ -151,10 +166,10 @@ impl ReadyScoreSubmitter {
 
         let rika_osu_scores: Vec<ExistingScore> = sqlx::query_as(&format!(
             "
-            SELECT s.id FROM osu_score s
-            JOIN {submit_mode}_performance pp ON s.id = pp.score_id
-            WHERE s.osu_user_id = ?
-            "
+			SELECT s.id FROM osu_score s
+			JOIN {submit_mode}_performance pp ON s.id = pp.score_id
+			WHERE s.osu_user_id = ?
+			"
         ))
         .bind(osu_id)
         .fetch_all(db)
@@ -192,22 +207,22 @@ impl ReadyScoreSubmitter {
             let beatmap_rosu = rosu_pp::Beatmap::from_bytes(&beatmap_file).await?;
 
             macro_rules! calc {
-            ($mode:ident) => {
-                paste! {
-                    [<$mode PP>]::new(&beatmap_rosu)
-                }
-                .mods(score.mods.into())
-                .n300(calc!(+count_300))
-                .n100(calc!(+count_100))
-                .n_misses(calc!(+count_miss))
-            };
-            (-$dep:ident) => {
-                score.$dep as usize
-            };
-            (+$dep:ident) => {
-                score.statistics.$dep as usize
-            };
-        }
+			($mode:ident) => {
+				paste! {
+					[<$mode PP>]::new(&beatmap_rosu)
+				}
+				.mods(score.mods.into())
+				.n300(calc!(+count_300))
+				.n100(calc!(+count_100))
+				.n_misses(calc!(+count_miss))
+			};
+			(-$dep:ident) => {
+				score.$dep as usize
+			};
+			(+$dep:ident) => {
+				score.statistics.$dep as usize
+			};
+		}
 
             let performance_attributes = match mode {
                 GameMode::Osu => Some(
@@ -239,8 +254,8 @@ impl ReadyScoreSubmitter {
 
         let mut scores_query_builder = QueryBuilder::<MySql>::new(
             "
-            INSERT INTO osu_score (id, osu_user_id, map_id, mods, mode)
-            ",
+			INSERT INTO osu_score (id, osu_user_id, map_id, mods, mode)
+			",
         );
 
         scores_query_builder.push_values(
@@ -307,18 +322,18 @@ impl ReadyScoreSubmitter {
 
         sqlx::query!(
             "
-            DELETE FROM osu_score
-            WHERE id NOT IN (
-                SELECT top_100.id
-                FROM (
-                    SELECT id
-                    FROM osu_score
-                    WHERE osu_user_id = ? AND mode = ?
-                    ORDER BY created_at DESC
-                    LIMIT 100
-                ) as top_100
-            ) AND osu_user_id = ? AND mode = ?
-            ",
+			DELETE FROM osu_score
+			WHERE id NOT IN (
+				SELECT top_100.id
+				FROM (
+					SELECT id
+					FROM osu_score
+					WHERE osu_user_id = ? AND mode = ?
+					ORDER BY created_at DESC
+					LIMIT 100
+				) as top_100
+			) AND osu_user_id = ? AND mode = ?
+			",
             &osu_id,
             &osu_id,
             &mode_bits,
@@ -329,7 +344,7 @@ impl ReadyScoreSubmitter {
 
         tx.commit().await?;
 
-        locker_guard.unlock()?;
+        locker_guard.unlock().await?;
 
         Ok(())
     }

@@ -1075,9 +1075,9 @@ dependencies = [
 name = "id-locked"
 version = "0.1.0"
 dependencies = [
- "parking_lot",
  "strum",
  "thiserror",
+ "tokio",
 ]
 
 [[package]]

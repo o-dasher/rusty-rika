@@ -6,7 +6,6 @@ use lexicon::Localizer;
 use poise::serenity_prelude;
 use roricon::RoriconMetaTrait;
 use serde::Deserialize;
-use strum::Display;
 
 use crate::{
     i18n::{rika_localizer::RikaLocalizer, RikaLocale},
@@ -38,18 +37,33 @@ pub enum OsuError {
     UnsupportedMode,
 }
 
-#[derive(Debug, From, Display)]
+#[derive(thiserror::Error, Debug, From)]
 pub enum Error {
+    #[error(transparent)]
     Serenity(serenity_prelude::Error),
 
+    #[error(transparent)]
     Anyhow(anyhow::Error),
+
+    #[error(transparent)]
     Osu(rosu_v2::error::OsuError),
+
+    #[error(transparent)]
     Sqlx(sqlx::Error),
+
+    #[error(transparent)]
     Rosu(rosu_pp::ParseError),
+
+    #[error(transparent)]
     RikaOsu(OsuError),
+
+    #[error(transparent)]
     LockError(IDLockerError),
+
+    #[error(transparent)]
     Submission(SubmissionError),
 
+    #[error("Fallthrough")]
     Fallthrough,
 }
 
